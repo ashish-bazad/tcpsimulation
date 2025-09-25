@@ -1,0 +1,86 @@
+.table-container {
+  border: 5px ridge white;
+  padding: 10px;
+  width: fit-content;
+  text-align: center;
+  font-size: 1rem;
+  background-color: #333;
+  color: white;
+  margin-bottom: 20px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #555;
+  padding: 8px;
+  min-width: 40px;
+  height: 40px;
+  text-align: center;
+}
+
+th {
+  background-color: #444;
+}
+
+/* The only highlight style we need now */
+.window-active {
+  background-color: #ffc107; /* Yellow */
+  color: black;
+  font-weight: bold;
+}
+
+.control-row {
+  background-color: #3e4e5e;
+}
+
+.control-row td {
+  vertical-align: middle;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e74c3c; /* Red for OFF */
+  transition: .4s;
+  border-radius: 22px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #2ecc71; /* Green for ON */
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+}

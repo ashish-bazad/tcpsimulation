@@ -1,0 +1,34 @@
+.status-container {
+  display: flex;
+  gap: 2rem;
+  background-color: #1a1a1a;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #555;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-item .label {
+  font-family: 'Courier New', Courier, monospace;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+.status-item .value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* Specific colors */
+.value.base { color: #2ecc71; } /* Green */
+.value.nextseqnum { color: #3498db; } /* Blue */
+.value.timer { color: #ffc107; } /* Yellow */

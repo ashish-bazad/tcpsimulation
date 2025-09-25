@@ -1,0 +1,37 @@
+.log-container {
+  width: 100%;
+  min-width: 600px;
+  max-width: 600px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: rgb(160, 212, 255);
+}
+
+.log-container h5 {
+  text-align: center;
+  margin: 0;
+  padding: 10px;
+  background-color: rgb(120, 180, 230);
+  color: black;
+}
+
+.log-content {
+  text-align: left;
+  overflow-y: scroll;
+  height: 350px;
+  padding: 10px;
+  color: black;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.log-content ol {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.log-content li {
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 5px;
+}

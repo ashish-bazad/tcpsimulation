@@ -1,0 +1,38 @@
+import React from 'react';
+import './PacketAnimation.css';
+
+const SVG_WIDTH = 500;
+const SVG_HEIGHT = 200;
+
+// This component renders the packets and ACKs currently in transit
+const PacketAnimation = ({ packetsInFlight }) => {
+  return (
+    <div className="animation-container">
+      <div className="entity sender">Sender</div>
+      <svg width={SVG_WIDTH} height={SVG_HEIGHT} className="animation-svg">
+        {packetsInFlight.map((p) => {
+          const isPacket = p.type === 'packet';
+          // Animate from left-to-right for packets, right-to-left for ACKs
+          const startX = isPacket ? 20 : SVG_WIDTH - 20;
+          const endX = isPacket ? SVG_WIDTH - 20 : 20;
+
+          return (
+            <g
+              key={p.key}
+              className={`transit-item ${isPacket ? 'packet' : 'ack'} ${p.status === 'lost' ? 'lost' : ''}`}
+            >
+              <line x1={startX} y1={p.y} x2={endX} y2={p.y} className="path" />
+              <circle cx={startX} cy={p.y} r="15" className="circle-bg" />
+              <text x={startX} y={p.y} dy=".3em" textAnchor="middle" className="label">
+                {isPacket ? `Pkt ${p.seq}` : `Ack ${p.seq}`}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="entity receiver">Receiver</div>
+    </div>
+  );
+};
+
+export default PacketAnimation;
