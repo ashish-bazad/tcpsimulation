@@ -175,7 +175,6 @@ function App() {
         onResend={handleResend} 
         resendDisabled={isResendDisabled}
       />
-      {/* This component now receives packetsInFlight instead of history */}
 
       <main className="main-content">
         <GBNTable
