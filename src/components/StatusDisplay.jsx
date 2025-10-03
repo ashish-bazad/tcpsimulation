@@ -16,7 +16,7 @@ const StatusDisplay = ({ windowBase, base, nextseqnum, timerValue, timerForPacke
         <span className="value base">{windowBase}</span>
       </div>
       <div className="status-item">
-        <span className="label">base:</span>
+        <span className="label">senderBase:</span>
         <span className="value base">{base}</span>
       </div>
       <div className="status-item">
