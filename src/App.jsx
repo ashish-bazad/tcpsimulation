@@ -29,6 +29,7 @@ function App() {
   const [packetsInFlight, setPacketsInFlight] = useState([]);
   
   const [senderBase, setSenderBase] = useState(0);
+  const [windowBase, setWindowBase] = useState(0);
   const [senderNextSeqNum, setSenderNextSeqNum] = useState(0);
   const [timerValue, setTimerValue] = useState(null);
   const [hasTimedOut, setHasTimedOut] = useState(false);
@@ -59,10 +60,11 @@ function App() {
     receiverWorkerRef.current.postMessage({ type: 'INIT' });
 
     senderWorkerRef.current.onmessage = (e) => {
-      const { type, packet, message, base, nextseqnum, timeLeft } = e.data;
+      const { type, packet, message, base, windowBase, nextseqnum, timeLeft } = e.data;
       if (message) addToLog(message);
       if (type === 'STATE_UPDATE') {
         setSenderBase(base);
+        setWindowBase(windowBase);
         setSenderNextSeqNum(nextseqnum);
       }
       if (type === 'SEND_PACKET') handlePacketTransmission(packet);
@@ -143,12 +145,21 @@ function App() {
       alert("A timeout has occurred. Please use 'Resend Window' to recover.");
       return;
     }
-    senderWorkerRef.current.postMessage({ type: 'SEND_NEXT' });
+    senderWorkerRef.current.postMessage({ type: 'SEND_WINDOW' });
   };
+
+  const handleMoveWindow = () => {
+
+    senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
+  }
 
   const handleResend = () => {
     if (!hasTimedOut) {
       alert("Please wait for the timeout to occur before resending.");
+      return;
+    }
+    if(windowBase !== senderBase) {
+      alert("Please move the window before resending.");
       return;
     }
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
@@ -156,6 +167,7 @@ function App() {
   };
   
   const isResendDisabled = senderBase === senderNextSeqNum;
+  const isMoveWindowDisabled = windowBase === senderBase;
 
   return (
     <div className="app-container">
@@ -164,6 +176,7 @@ function App() {
       </header>
       
       <StatusDisplay 
+        windowBase={windowBase}
         base={senderBase} 
         nextseqnum={senderNextSeqNum} 
         timerValue={timerValue}
@@ -173,13 +186,15 @@ function App() {
       <SimulatorControls 
         onSend={handleSend} 
         onResend={handleResend} 
+        onMoveWindow={handleMoveWindow}
+        moveWindowDisabled={isMoveWindowDisabled}
         resendDisabled={isResendDisabled}
       />
 
       <main className="main-content">
         <GBNTable
           packets={packets}
-          base={senderBase}
+          base={windowBase}
           windowSize={WINDOW_SIZE}
           onToggle={handleToggle}
         />

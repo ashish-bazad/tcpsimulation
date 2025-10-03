@@ -1,5 +1,6 @@
 let N;
 let base = 0;
+let windowBase = 0;
 let nextseqnum = 0;
 let totalPackets;
 let timeoutDuration;
@@ -41,26 +42,52 @@ onmessage = (e) => {
       totalPackets = payload.totalPackets;
       timeoutDuration = payload.timeoutDuration;
       base = 0;
+      windowBase = 0;
       nextseqnum = 0;
       stopTimer();
-      postMessage({ type: 'STATE_UPDATE', base, nextseqnum });
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum });
       break;
 
-    case 'SEND_NEXT':
-      if (nextseqnum < base + N && nextseqnum < totalPackets) {
-        if (base === nextseqnum) {
-          startTimer();
-        }
-        postMessage({ type: 'SEND_PACKET', packet: { seq: nextseqnum } });
-        nextseqnum++;
-        postMessage({ type: 'STATE_UPDATE', base, nextseqnum });
+    case 'SEND_WINDOW':
+      if (windowBase !== base) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please move the window!`})
       } else {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Window is full. Cannot send new packet.` });
+        for (let i = windowBase; i < windowBase + N && i < totalPackets; i++) {
+          if (i >= nextseqnum) {
+            if(base === nextseqnum) {
+              startTimer();
+            }
+            postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
+            nextseqnum++;
+            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum });// Update state after each packet is sent
+          } else {
+            postMessage({ type: 'LOG', message: `(Sender): 🔴 Packet ${i} already sent, please use resend window or move window!` });
+            break;
+          }
+        }
+      }
+      // if (nextseqnum < windowBase + N && nextseqnum < totalPackets) {
+      //   if (base === nextseqnum) {
+      //     startTimer();
+      //   }
+      //   postMessage({ type: 'SEND_PACKET', packet: { seq: nextseqnum } });
+      //   nextseqnum++;
+      //   postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum });
+      // } else {
+      //   postMessage({ type: 'LOG', message: `(Sender): 🔴 Window is full. Cannot send new packet.` });
+      // }
+      break;
+    
+    case 'MOVE_WINDOW':
+      if (windowBase < base) {
+        windowBase = base;
+        postMessage({ type: 'LOG', message: `(Sender): Window moved to start at packet ${windowBase}.` });
+        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum });
       }
       break;
     
     case 'RESEND_WINDOW':
-        postMessage({ type: 'LOG', message: `(Sender): Manually resending window from ${base} to ${nextseqnum - 1}.`});
+        postMessage({ type: 'LOG', message: `(Sender): Resending window from ${base} to ${nextseqnum - 1}.`});
         // Resend all packets in the current window and restart the timer
         for (let i = base; i < nextseqnum; i++) {
             postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
@@ -82,7 +109,7 @@ onmessage = (e) => {
         } else {
           startTimer();
         }
-        postMessage({ type: 'STATE_UPDATE', base, nextseqnum });
+        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum });
       }
       break;
   }
