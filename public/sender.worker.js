@@ -80,7 +80,7 @@ onmessage = (e) => {
     
     case 'MOVE_WINDOW':
       if (windowBase < base) {
-        windowBase = base;
+        windowBase += 1;
         postMessage({ type: 'LOG', message: `(Sender): Window moved to start at packet ${windowBase}.` });
         postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum });
       }
