@@ -1,11 +1,11 @@
 import React from 'react';
 
-const SimulatorControls = ({ onSend, onMoveWindow, onResend, moveWindowDisabled, resendDisabled }) => {
+const SimulatorControls = ({ onSend, onMoveWindow, onResend, moveWindowDisabled, resendDisabled, isStopAndWait }) => {
   return (
     <div className="controls-container" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
-      <button onClick={onSend}>Send Window</button>
+      <button onClick={onSend}>{isStopAndWait ? "Send Packet" : "Send Window"}</button>
       <button onClick={onMoveWindow} disabled={moveWindowDisabled}>Move Window</button>
-      <button onClick={onResend} disabled={resendDisabled}>Resend Window</button>
+      <button onClick={onResend} disabled={resendDisabled}>{isStopAndWait ? "Resend Packet" : "Resend Window"}</button>
     </div>
   );
 };
