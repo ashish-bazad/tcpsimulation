@@ -1,4 +1,4 @@
-// src/components/GBN/GBNSimulator.jsx
+// src/components/SlowStart/SlowStartSimulator.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import GBNTable from '../GBNTable';
 import LogBox from '../LogBox';
@@ -8,11 +8,11 @@ import StatusDisplay from '../StatusDisplay';
 import '../../App.css';
 
 const TOTAL_PACKETS = 10;
-const WINDOW_SIZE = 4;
+const INITIAL_WINDOW_SIZE = 1;
 const TIMEOUT_DURATION = 7000;
-const ANIMATION_DURATION = 1500; // This should match the CSS animation duration
+const ANIMATION_DURATION = 1500;
 
-const VIRTUAL_PACKET_COUNT = TOTAL_PACKETS + WINDOW_SIZE;
+const VIRTUAL_PACKET_COUNT = TOTAL_PACKETS + INITIAL_WINDOW_SIZE;
 
 const initialPackets = Array.from({ length: VIRTUAL_PACKET_COUNT }, (_, i) => ({
   id: i,
@@ -22,19 +22,22 @@ const initialPackets = Array.from({ length: VIRTUAL_PACKET_COUNT }, (_, i) => ({
   isDummy: i >= TOTAL_PACKETS,
 }));
 
-function GBNApp() {
+function SlowStartSimulator() {
   const [packets, setPackets] = useState(initialPackets);
   const packetsRef = useRef(packets);
-  
+
   const [log, setLog] = useState([]);
   const [packetsInFlight, setPacketsInFlight] = useState([]);
-  
+
   const [senderBase, setSenderBase] = useState(0);
   const [windowBase, setWindowBase] = useState(0);
   const [senderNextSeqNum, setSenderNextSeqNum] = useState(0);
   const [timerValue, setTimerValue] = useState(null);
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const [timerForPacket, setTimerForPacket] = useState(null);
+  const [windowSize, setWindowSize] = useState(INITIAL_WINDOW_SIZE);
+  const [congestionWindow, setCongestionWindow] = useState(1);
+  const [slowStartThreshold, setSlowStartThreshold] = useState(8);
 
   const senderWorkerRef = useRef(null);
   const receiverWorkerRef = useRef(null);
@@ -42,7 +45,7 @@ function GBNApp() {
   useEffect(() => {
     packetsRef.current = packets;
   }, [packets]);
-  
+
   const addToLog = (message) => setLog(prev => [...prev, message]);
 
   const handleToggle = (id, type) => {
@@ -54,19 +57,28 @@ function GBNApp() {
   };
 
   useEffect(() => {
-    senderWorkerRef.current = new Worker('/sender.worker.js');
+    senderWorkerRef.current = new Worker('/slow_start_sender.worker.js');
     receiverWorkerRef.current = new Worker('/receiver.worker.js');
-    const initPayload = { windowSize: WINDOW_SIZE, totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION };
+    const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION };
     senderWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
     receiverWorkerRef.current.postMessage({ type: 'INIT' });
 
     senderWorkerRef.current.onmessage = (e) => {
-      const { type, packet, message, base, windowBase, nextseqnum, timeLeft } = e.data;
+      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newSlowStartThreshold } = e.data;
       if (message) addToLog(message);
       if (type === 'STATE_UPDATE') {
         setSenderBase(base);
         setWindowBase(windowBase);
         setSenderNextSeqNum(nextseqnum);
+        if (newWindowSize) {
+          setWindowSize(newWindowSize);
+        }
+        if (newCongestionWindow) {
+          setCongestionWindow(newCongestionWindow);
+        }
+        if (newSlowStartThreshold) {
+          setSlowStartThreshold(newSlowStartThreshold);
+        }
       }
       if (type === 'SEND_PACKET') handlePacketTransmission(packet);
       if (type === 'TIMER_TICK') {
@@ -89,7 +101,7 @@ function GBNApp() {
       if (message) addToLog(message);
       if (type === 'SEND_ACK') handleAckTransmission(ack);
     };
-    
+
     return () => {
       senderWorkerRef.current.terminate();
       receiverWorkerRef.current.terminate();
@@ -100,11 +112,10 @@ function GBNApp() {
     const packetInfo = packetsRef.current.find(p => p.id === packet.seq);
     const isLost = !packetInfo.packetWillSucceed;
     const packetKey = `${packet.seq}-${Date.now()}`;
-    
+
     setPackets(prev => prev.map(p => p.id === packet.seq ? { ...p, status: 'sent' } : p));
     addToLog(`(Network): Sending Packet ${packet.seq}...`);
-    
-    // Add to in-flight list for animation
+
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: packet.seq, status: isLost ? 'lost' : 'in-flight', y: 50 + (prev.length % 4) * 30 }]);
 
     setTimeout(() => {
@@ -113,7 +124,6 @@ function GBNApp() {
       } else {
         receiverWorkerRef.current.postMessage({ type: 'RECEIVE_PACKET', packet });
       }
-      // Remove from animation list after it finishes
       setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
     }, ANIMATION_DURATION);
   };
@@ -124,10 +134,9 @@ function GBNApp() {
     const ackKey = `ack-${ack}-${Date.now()}`;
 
     addToLog(`(Network): Sending ACK ${ack}...`);
-    
-    // Add to in-flight list for animation
+
     setPacketsInFlight(prev => [...prev, { key: ackKey, type: 'ack', seq: ack, status: isLost ? 'lost' : 'in-flight', y: 50 + (prev.length % 4) * 30 }]);
-    
+
     setTimeout(() => {
       if (isLost) {
         addToLog(`(Network): 🔴 ACK ${ack} was lost (manual setting)!`);
@@ -136,11 +145,10 @@ function GBNApp() {
         setPackets(prev => prev.map(p => p.id <= ack ? { ...p, status: 'acked' } : p));
         senderWorkerRef.current.postMessage({ type: 'RECEIVE_ACK', payload: { ack } });
       }
-      // Remove from animation list after it finishes
       setPacketsInFlight(prev => prev.filter(p => p.key !== ackKey));
     }, ANIMATION_DURATION);
   };
-  
+
   const handleSend = () => {
     if (hasTimedOut) {
       alert("A timeout has occurred. Please use 'Resend Window' to recover.");
@@ -166,6 +174,14 @@ function GBNApp() {
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
     setHasTimedOut(false);
   };
+
+  const handleIncreaseWindow = () => {
+    senderWorkerRef.current.postMessage({ type: 'INCREASE_WINDOW_MANUAL' });
+  };
+
+  const handleDecreaseWindow = () => {
+    senderWorkerRef.current.postMessage({ type: 'DECREASE_WINDOW_MANUAL' });
+  };
   
   const isResendDisabled = !hasTimedOut;
   const isMoveWindowDisabled = windowBase === senderBase;
@@ -173,7 +189,7 @@ function GBNApp() {
   return (
     <div className="app-container">
       <header>
-        <h1>Go-Back-N Protocol Simulator</h1>
+        <h1>Slow Start Simulator</h1>
       </header>
       
       <StatusDisplay 
@@ -182,6 +198,8 @@ function GBNApp() {
         nextseqnum={senderNextSeqNum} 
         timerValue={timerValue}
         timerForPacket={timerForPacket}
+        congestionWindow={congestionWindow}
+        slowStartThreshold={slowStartThreshold}
       />
 
       <SimulatorControls 
@@ -190,13 +208,15 @@ function GBNApp() {
         onMoveWindow={handleMoveWindow}
         moveWindowDisabled={isMoveWindowDisabled}
         resendDisabled={isResendDisabled}
+        onIncreaseWindow={handleIncreaseWindow}
+        onDecreaseWindow={handleDecreaseWindow}
       />
 
       <main className="main-content">
         <GBNTable
           packets={packets}
           base={windowBase}
-          windowSize={WINDOW_SIZE}
+          windowSize={windowSize}
           onToggle={handleToggle}
         />
         <LogBox messages={log} />
@@ -206,4 +226,4 @@ function GBNApp() {
   );
 }
 
-export default GBNApp;
+export default SlowStartSimulator;

@@ -1,3 +1,4 @@
+/* src/components/StatusDisplay.css */
 .status-container {
   display: flex;
   gap: 2rem;
@@ -32,3 +33,5 @@
 .value.base { color: #2ecc71; } /* Green */
 .value.nextseqnum { color: #3498db; } /* Blue */
 .value.timer { color: #ffc107; } /* Yellow */
+.value.cwnd { color: #e74c3c; } /* Red */
+.value.ssthresh { color: #9b59b6; } /* Purple */
