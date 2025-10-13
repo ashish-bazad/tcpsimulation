@@ -139,11 +139,11 @@ function StopAndWaitSimulator() {
 
   const handleSend = () => {
     if (hasTimedOut) {
-      alert("A timeout has occurred. Please use 'Resend Packet' to recover.");
+      addToLog("🔴 A timeout has occurred. Please use 'Resend Packet' to recover.");
       return;
     }
     if (windowBase !== senderBase) {
-        alert("Please move the window before sending the next packet.");
+        addToLog("🔴 Please move the window before sending the next packet.");
         return;
     }
     senderWorkerRef.current.postMessage({ type: 'SEND_PACKET' });
@@ -151,7 +151,7 @@ function StopAndWaitSimulator() {
 
   const handleResend = () => {
     if (!hasTimedOut) {
-      alert("Please wait for the timeout to occur before resending.");
+      addToLog("🔴 Please wait for the timeout to occur before resending.");
       return;
     }
     senderWorkerRef.current.postMessage({ type: 'RESEND_PACKET' });
@@ -159,10 +159,12 @@ function StopAndWaitSimulator() {
   };
 
   const handleMoveWindow = () => {
+    if (windowBase === senderBase) {
+      addToLog("🔴 Cannot move window as it is already at the base.");
+      return;
+    }
     senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
   }
-
-  const isMoveWindowDisabled = windowBase === senderBase;
 
   return (
     <div className="app-container">
@@ -183,8 +185,6 @@ function StopAndWaitSimulator() {
         onResend={handleResend}
         onMoveWindow={handleMoveWindow}
         isStopAndWait={true}
-        moveWindowDisabled={isMoveWindowDisabled}
-        resendDisabled={!hasTimedOut}
       />
 
       <main className="main-content">

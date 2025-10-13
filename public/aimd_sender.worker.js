@@ -7,8 +7,7 @@ let nextseqnum = 0;
 let totalPackets;
 let timeoutDuration;
 let acksReceivedForCurrentWindow = 0;
-let manualIncrease = false;
-let manualDecrease = false;
+var requiredWindowSize = N;
 
 let timerInterval = null;
 let timeLeft = 0;
@@ -26,8 +25,9 @@ const startTimer = () => {
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
       timerInterval = null;
-      manualDecrease = true; // Signal for manual decrease
+      requiredWindowSize = Math.max(1, Math.floor(N / 2));
       acksReceivedForCurrentWindow = 0;
+      postMessage({ type: 'STATE_UPDATE', newRequiredWindowSize: requiredWindowSize });
       postMessage({ type: 'LOG', message: `(Sender): TIMEOUT for packets starting from base ${base}. Awaiting manual window decrease.` });
       postMessage({ type: 'TIMEOUT_EVENT' });
     }
@@ -55,12 +55,8 @@ onmessage = (e) => {
       break;
 
     case 'SEND_WINDOW':
-      if (manualIncrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please increase the window size before sending more packets!` });
-        return;
-      }
-      if (manualDecrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please decrease the window size before sending more packets!` });
+      if(N !== requiredWindowSize) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please adjust the window size to the required size of ${requiredWindowSize} before sending more packets!` });
         return;
       }
       if (windowBase !== base) {
@@ -73,7 +69,7 @@ onmessage = (e) => {
             }
             postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
             nextseqnum++;
-            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh });
+            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize });
           } else {
             postMessage({ type: 'LOG', message: `(Sender): 🔴 Packet ${i} already sent, please use resend window or move window!` });
             break;
@@ -86,17 +82,13 @@ onmessage = (e) => {
       if (windowBase < base) {
         windowBase += 1;
         postMessage({ type: 'LOG', message: `(Sender): Window moved to start at packet ${windowBase}.` });
-        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh });
+        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize });
       }
       break;
 
     case 'RESEND_WINDOW':
-      if (manualIncrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please increase the window size before sending more packets!` });
-        return;
-      }
-      if (manualDecrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please decrease the window size before sending more packets!` });
+      if(N !== requiredWindowSize) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please adjust the window size to the required size of ${requiredWindowSize} before resending packets!` });
         return;
       }
       postMessage({ type: 'LOG', message: `(Sender): Resending window from ${base} to ${nextseqnum - 1}.` });
@@ -112,7 +104,7 @@ onmessage = (e) => {
       if (payload.ack >= base) {
         acksReceivedForCurrentWindow++;
         if (acksReceivedForCurrentWindow >= N) {
-          manualIncrease = true; // Signal for manual increase
+          requiredWindowSize++;
           acksReceivedForCurrentWindow = 0;
         }
 
@@ -126,33 +118,24 @@ onmessage = (e) => {
         } else {
           startTimer();
         }
-        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh });
+        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize });
       }
       break;
 
     case 'INCREASE_WINDOW_MANUAL':
-      if (manualDecrease || !manualIncrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Cannot increase window size now!` });
-        return;
-      }
-      // Additive Increase logic
       N++;
       postMessage({ type: 'LOG', message: `(Sender): Full window ACK'd. cwnd increments to ${N}.` });
-      manualIncrease = false;
-      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh });
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize });
       break;
 
     case 'DECREASE_WINDOW_MANUAL':
-      if (manualIncrease || !manualDecrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Cannot decrease window size now!` });
-        return;
+      if(N <= 1) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Window size cannot be decreased further.` })
+        break;
       }
-      // Multiplicative Decrease logic
-      ssthresh = Math.max(1, Math.floor(ssthresh / 2));
-      N = Math.max(1, Math.floor(N / 2));
+      N--;
       postMessage({ type: 'LOG', message: `(Sender): Window size manually decreased to ${N} and ssthreshold set to ${ssthresh}.` });
-      manualDecrease = false;
-      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh });
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize });
       break;
   }
 };

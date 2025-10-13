@@ -37,7 +37,7 @@ function AIMDSimulator() {
   const [timerForPacket, setTimerForPacket] = useState(null);
   const [windowSize, setWindowSize] = useState(INITIAL_WINDOW_SIZE);
   const [congestionWindow, setCongestionWindow] = useState(INITIAL_WINDOW_SIZE);
-  const [slowStartThreshold, setSlowStartThreshold] = useState(8);
+  const [requiredWindowSize, setRequiredWindowSize] = useState(INITIAL_WINDOW_SIZE);
 
   const senderWorkerRef = useRef(null);
   const receiverWorkerRef = useRef(null);
@@ -64,20 +64,18 @@ function AIMDSimulator() {
     receiverWorkerRef.current.postMessage({ type: 'INIT' });
 
     senderWorkerRef.current.onmessage = (e) => {
-      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newSlowStartThreshold } = e.data;
+      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newRequiredWindowSize } = e.data;
       if (message) addToLog(message);
       if (type === 'STATE_UPDATE') {
-        setSenderBase(base);
-        setWindowBase(windowBase);
-        setSenderNextSeqNum(nextseqnum);
+        if(base !== undefined) setSenderBase(base);
+        if(windowBase !== undefined)setWindowBase(windowBase);
+        if(nextseqnum !== undefined) setSenderNextSeqNum(nextseqnum);
+        if(newRequiredWindowSize !== undefined) setRequiredWindowSize(newRequiredWindowSize);
         if (newWindowSize) {
           setWindowSize(newWindowSize);
         }
         if (newCongestionWindow) {
           setCongestionWindow(newCongestionWindow);
-        }
-        if (newSlowStartThreshold) {
-          setSlowStartThreshold(newSlowStartThreshold);
         }
       }
       if (type === 'SEND_PACKET') handlePacketTransmission(packet);
@@ -158,6 +156,10 @@ function AIMDSimulator() {
   };
 
   const handleMoveWindow = () => {
+    if(isMoveWindowDisabled) {
+      addToLog("(Sender): 🔴 Window is already at the base, cannot move further.")
+      return;
+    }
 
     senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
   }
@@ -169,6 +171,10 @@ function AIMDSimulator() {
     }
     if(windowBase !== senderBase) {
       alert("Please move the window before resending.");
+      return;
+    }
+    if(isResendDisabled) {
+      addToLog("(Sender): 🔴 Resend is disabled until a timeout occurs.")
       return;
     }
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
@@ -199,15 +205,13 @@ function AIMDSimulator() {
         timerValue={timerValue}
         timerForPacket={timerForPacket}
         congestionWindow={congestionWindow}
-        slowStartThreshold={slowStartThreshold}
+        requiredWindowSize={requiredWindowSize}
       />
 
       <SimulatorControls 
         onSend={handleSend} 
         onResend={handleResend} 
         onMoveWindow={handleMoveWindow}
-        moveWindowDisabled={isMoveWindowDisabled}
-        resendDisabled={isResendDisabled}
         onIncreaseWindow={handleIncreaseWindow}
         onDecreaseWindow={handleDecreaseWindow}
       />

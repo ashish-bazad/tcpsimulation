@@ -56,6 +56,11 @@ function ThreeWayHandshakeSimulator() {
   };
   
   const handleSendSyn = () => {
+    if (clientState !== 'CLOSED') {
+      addToLog("🔴 Client cannot send SYN in its current state.");
+      return;
+    }
+
     const packetKey = `syn-${Date.now()}`;
     const willSucceed = transmissionStatus.syn;
     
@@ -77,6 +82,11 @@ function ThreeWayHandshakeSimulator() {
   };
 
   const handleSendSynAck = () => {
+    if (serverState !== 'SYN_RCVD') {
+      addToLog("🔴 Server cannot send SYN-ACK in its current state.");
+      return;
+    }
+
     const packetKey = `syn-ack-${Date.now()}`;
     const willSucceed = transmissionStatus.synAck;
 
@@ -96,6 +106,11 @@ function ThreeWayHandshakeSimulator() {
   };
 
   const handleSendAck = () => {
+    if (clientState !== 'ESTABLISHED' || finalAckSent) {
+      addToLog("🔴 Client cannot send final ACK in its current state.");
+      return;
+    }
+
     const packetKey = `ack-${Date.now()}`;
     const willSucceed = transmissionStatus.ack;
 
@@ -166,17 +181,17 @@ function ThreeWayHandshakeSimulator() {
         <div className="entity-container">
           <h2>Client</h2>
           <p>Status: {getStatus(clientState)}</p>
-          <button onClick={handleSendSyn} disabled={clientState !== 'CLOSED'}>
+          <button onClick={handleSendSyn}>
             {hasTimedOut ? "Resend SYN" : "Send SYN"}
           </button>
-          <button onClick={handleSendAck} disabled={clientState !== 'ESTABLISHED' || finalAckSent}>
+          <button onClick={handleSendAck}>
             Send Final ACK
           </button>
         </div>
         <div className="entity-container">
           <h2>Server</h2>
           <p>Status: {getStatus(serverState)}</p>
-          <button onClick={handleSendSynAck} disabled={serverState !== 'SYN_RCVD'}>
+          <button onClick={handleSendSynAck}>
             Send SYN-ACK
           </button>
         </div>

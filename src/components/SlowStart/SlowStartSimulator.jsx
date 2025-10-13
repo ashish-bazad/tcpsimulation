@@ -31,13 +31,13 @@ function SlowStartSimulator() {
 
   const [senderBase, setSenderBase] = useState(0);
   const [windowBase, setWindowBase] = useState(0);
+  const [requiredWindowSize, setRequiredWindowSize] = useState(1);
   const [senderNextSeqNum, setSenderNextSeqNum] = useState(0);
   const [timerValue, setTimerValue] = useState(null);
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const [timerForPacket, setTimerForPacket] = useState(null);
   const [windowSize, setWindowSize] = useState(INITIAL_WINDOW_SIZE);
   const [congestionWindow, setCongestionWindow] = useState(1);
-  const [slowStartThreshold, setSlowStartThreshold] = useState(8);
 
   const senderWorkerRef = useRef(null);
   const receiverWorkerRef = useRef(null);
@@ -64,20 +64,21 @@ function SlowStartSimulator() {
     receiverWorkerRef.current.postMessage({ type: 'INIT' });
 
     senderWorkerRef.current.onmessage = (e) => {
-      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newSlowStartThreshold } = e.data;
+      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newRequiredWindowSize } = e.data;
       if (message) addToLog(message);
       if (type === 'STATE_UPDATE') {
-        setSenderBase(base);
-        setWindowBase(windowBase);
-        setSenderNextSeqNum(nextseqnum);
+        if(base !== undefined) setSenderBase(base);
+        if(windowBase !== undefined) setWindowBase(windowBase);
+        if(nextseqnum !== undefined) setSenderNextSeqNum(nextseqnum);
+        if(newRequiredWindowSize) {
+          setRequiredWindowSize(newRequiredWindowSize);
+        }
+
         if (newWindowSize) {
           setWindowSize(newWindowSize);
         }
         if (newCongestionWindow) {
           setCongestionWindow(newCongestionWindow);
-        }
-        if (newSlowStartThreshold) {
-          setSlowStartThreshold(newSlowStartThreshold);
         }
       }
       if (type === 'SEND_PACKET') handlePacketTransmission(packet);
@@ -158,6 +159,10 @@ function SlowStartSimulator() {
   };
 
   const handleMoveWindow = () => {
+    if(isMoveWindowDisabled) {
+      addToLog("🔴 Please move the window only when the base has advanced.");
+      return;
+    }
 
     senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
   }
@@ -169,6 +174,10 @@ function SlowStartSimulator() {
     }
     if(windowBase !== senderBase) {
       alert("Please move the window before resending.");
+      return;
+    }
+    if(isResendDisabled) {
+      addToLog("🔴 Resend is disabled until a timeout occurs.");
       return;
     }
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
@@ -199,15 +208,14 @@ function SlowStartSimulator() {
         timerValue={timerValue}
         timerForPacket={timerForPacket}
         congestionWindow={congestionWindow}
-        slowStartThreshold={slowStartThreshold}
+        requiredWindowSize={requiredWindowSize}
+        // slowStartThreshold={slowStartThreshold}
       />
 
       <SimulatorControls 
         onSend={handleSend} 
         onResend={handleResend} 
         onMoveWindow={handleMoveWindow}
-        moveWindowDisabled={isMoveWindowDisabled}
-        resendDisabled={isResendDisabled}
         onIncreaseWindow={handleIncreaseWindow}
         onDecreaseWindow={handleDecreaseWindow}
       />

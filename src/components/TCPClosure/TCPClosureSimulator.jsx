@@ -1,5 +1,5 @@
 // src/components/TCPClosure/TCPClosureSimulator.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import LogBox from '../LogBox';
 import PacketAnimation from '../PacketAnimation';
 import StatusDisplay from '../StatusDisplay';
@@ -10,6 +10,8 @@ const ANIMATION_DURATION = 1500;
 function TCPClosureSimulator() {
   const [log, setLog] = useState([]);
   const [packetsInFlight, setPacketsInFlight] = useState([]);
+  const [clientStateBits, setClientStateBits] = useState(1);
+  const [serverStateBits, setServerStateBits] = useState(1);
   const [clientState, setClientState] = useState('ESTABLISHED');
   const [serverState, setServerState] = useState('ESTABLISHED');
 
@@ -22,106 +24,110 @@ function TCPClosureSimulator() {
 
   const addToLog = (message) => setLog(prev => [...prev, message]);
 
+  const handleSendFinServer = () => {
+    if(!(serverStateBits & 1)) {
+      addToLog("🔴 Server cannot send FIN in its current state.");
+      return;
+    }
+
+    const packetKey = `fin-server-${Date.now()}`;
+    const willSucceed = transmissionStatus.fin1;
+
+    addToLog(`(Server): Sending FIN...`);
+    // Corrected: Use 'ack' type for server-to-client animation
+    setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'ack', seq: 'FIN', y: 100, status: willSucceed ? 'in-flight' : 'lost' }]);
+
+    setTimeout(() => {
+        if (willSucceed) {
+          setServerStateBits(serverStateBits ^ 1);
+          addToLog(`(Client): Received FIN.`);
+          setClientStateBits(clientStateBits | 2);
+        } else {
+          addToLog(`(Network): 🔴 FIN from server was lost.`);
+        }
+        setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
+    }, ANIMATION_DURATION);
+  };
+
   const handleSendFinClient = () => {
-    if (clientState !== 'ESTABLISHED') {
+    if(!(clientStateBits & 1)) {
       addToLog("🔴 Client cannot send FIN in its current state.");
       return;
     }
 
     const packetKey = `fin-client-${Date.now()}`;
-    const willSucceed = transmissionStatus.fin1;
+    const willSucceed = transmissionStatus.fin2;
 
     addToLog(`(Client): Sending FIN...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'FIN', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
-    setClientState('FIN_WAIT_1');
 
     setTimeout(() => {
-      if (willSucceed) {
-        addToLog(`(Server): Received FIN.`);
-        setServerState('CLOSE_WAIT');
-      } else {
-        addToLog(`(Network): 🔴 FIN from client was lost.`);
-      }
-      setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
+        if (willSucceed) {
+          setClientStateBits(clientStateBits ^ 1);
+          addToLog(`(Server): Received FIN.`);
+          setServerStateBits(serverStateBits | 2);
+        } else {
+          addToLog(`(Network): 🔴 FIN from client was lost.`);
+        }
+        setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
+    }, ANIMATION_DURATION);
+  };
+
+  const handleSendAckClient = () => {
+    if(!(clientStateBits & 2)) {
+      addToLog("🔴 Client cannot send ACK in its current state.");
+      return;
+    }
+
+    const packetKey = `ack-client-${Date.now()}`;
+    const willSucceed = transmissionStatus.ack1;
+
+    addToLog(`(Client): Sending ACK...`);
+    // Corrected: Use 'packet' type for client-to-server animation
+    setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'ACK', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
+    
+    setTimeout(() => {
+        if (willSucceed) {
+          setClientStateBits(clientStateBits ^ 2);
+          addToLog(`(Server): Received ACK.`);
+        } else {
+          addToLog(`(Network): 🔴 ACK from client was lost.`);
+        }
+        setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
     }, ANIMATION_DURATION);
   };
 
   const handleSendAckServer = () => {
-    if (serverState !== 'CLOSE_WAIT') {
+    if(!(serverStateBits & 2)) {
       addToLog("🔴 Server cannot send ACK in its current state.");
       return;
     }
 
     const packetKey = `ack-server-${Date.now()}`;
-    const willSucceed = transmissionStatus.ack1;
+    const willSucceed = transmissionStatus.ack2;
 
     addToLog(`(Server): Sending ACK...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'ack', seq: 'ACK', y: 100, status: willSucceed ? 'in-flight' : 'lost' }]);
-
-    setTimeout(() => {
-      if (willSucceed) {
-        addToLog(`(Client): Received ACK.`);
-        setClientState('FIN_WAIT_2');
-      } else {
-        addToLog(`(Network): 🔴 ACK from server was lost.`);
-      }
-      setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
-    }, ANIMATION_DURATION);
-  };
-
-  const handleSendFinServer = () => {
-    if (serverState !== 'CLOSE_WAIT') {
-        addToLog("🔴 Server cannot send FIN in its current state.");
-        return;
-      }
-
-    const packetKey = `fin-server-${Date.now()}`;
-    const willSucceed = transmissionStatus.fin2;
-
-    addToLog(`(Server): Sending FIN...`);
-    setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'ack', seq: 'FIN', y: 100, status: willSucceed ? 'in-flight' : 'lost' }]);
-    setServerState('LAST_ACK');
-
-    setTimeout(() => {
-      if (willSucceed) {
-        addToLog(`(Client): Received FIN.`);
-        setClientState('TIME_WAIT');
-      } else {
-        addToLog(`(Network): 🔴 FIN from server was lost.`);
-      }
-      setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
-    }, ANIMATION_DURATION);
-  };
-
-  const handleSendAckClient = () => {
-    if (clientState !== 'TIME_WAIT') {
-        addToLog("🔴 Client cannot send ACK in its current state.");
-        return;
-    }
-
-    const packetKey = `ack-client-${Date.now()}`;
-    const willSucceed = transmissionStatus.ack2;
-
-    addToLog(`(Client): Sending ACK...`);
-    setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'ACK', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
     
     setTimeout(() => {
         if (willSucceed) {
-            addToLog(`(Server): ⭐️ Received ACK. Connection Closed!`);
-            setServerState('CLOSED');
+            setServerStateBits(serverStateBits ^ 2);
+            addToLog(`(Client): Received ACK.`);
         } else {
-            addToLog(`(Network): 🔴 Final ACK from client was lost.`);
+            addToLog(`(Network): 🔴 Final ACK from server was lost.`);
         }
         setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
-        
-        // Client moves to CLOSED after a timeout in TIME_WAIT, simulated here
-        setTimeout(() => {
-            setClientState('CLOSED');
-            addToLog(`(Client): TIME_WAIT finished. Connection Closed.`);
-        }, 2000);
-
     }, ANIMATION_DURATION);
   };
+  let shouldLogClosure = useRef(true);
+  useEffect(() => {
+    if(shouldLogClosure.current && serverStateBits === 0 && clientStateBits === 0) {
+      shouldLogClosure.current = false;
+      setClientState('CLOSED');
+      setServerState('CLOSED');
+      addToLog(`(Client): ⭐️ Both Server and Client received ACK. Connection Closed!`);
+    }
+  }, [serverStateBits, clientStateBits]);
 
   const getStatus = (state) => <span className={`status-badge ${state.toLowerCase()}`}>{state.replace('_', '-')}</span>;
 
