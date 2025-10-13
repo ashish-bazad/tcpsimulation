@@ -10,6 +10,8 @@ const Navbar = ({ setProtocol }) => {
       <button onClick={() => setProtocol('gbn')}>Go-Back-N</button>
       <button onClick={() => setProtocol('slow_start')}>Slow Start</button>
       <button onClick={() => setProtocol('aimd')}>AIMD</button>
+      <button onClick={() => setProtocol('closure')}>TCP Closure</button>
+      <button onClick={() => setProtocol('tcp')}>Complete TCP</button>
     </nav>
   );
 };

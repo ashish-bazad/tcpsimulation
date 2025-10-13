@@ -5,10 +5,12 @@ import StopAndWaitSimulator from './components/StopAndWait/StopAndWaitSimulator'
 import ThreeWayHandshakeSimulator from './components/ThreeWayHandshake/ThreeWayHandshakeSimulator';
 import SlowStartSimulator from './components/SlowStart/SlowStartSimulator';
 import AIMDSimulator from './components/AIMD/AIMDSimulator';
+import TCPClosureSimulator from './components/TCPClosure/TCPClosureSimulator';
+import TCPSimulator from './components/TCP/TCPSimulator';
 import Navbar from './components/Navbar';
 
 function App() {
-  const [protocol, setProtocol] = useState('handshake'); // 'gbn', 'sw', 'handshake', 'slow_start', or 'aimd'
+  const [protocol, setProtocol] = useState('handshake'); // 'gbn', 'sw', 'handshake', 'slow_start', 'aimd', 'closure', or 'tcp'
 
   return (
     <div>
@@ -18,6 +20,8 @@ function App() {
       {protocol === 'gbn' && <GBNApp />}
       {protocol === 'slow_start' && <SlowStartSimulator />}
       {protocol === 'aimd' && <AIMDSimulator />}
+      {protocol === 'closure' && <TCPClosureSimulator />}
+      {protocol === 'tcp' && <TCPSimulator />}
     </div>
   );
 }

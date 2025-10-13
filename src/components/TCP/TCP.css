@@ -1,0 +1,5 @@
+/* src/components/TCP/TCP.css */
+.phase-display {
+  color: #ffc107;
+  text-transform: capitalize;
+}
