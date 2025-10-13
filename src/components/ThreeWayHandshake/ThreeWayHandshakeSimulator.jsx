@@ -8,12 +8,12 @@ import './ThreeWayHandshake.css';
 const ANIMATION_DURATION = 1500;
 const TIMEOUT_DURATION = 7; // in seconds
 
-function ThreeWayHandshakeSimulator() {
+function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
   const [log, setLog] = useState([]);
   const [packetsInFlight, setPacketsInFlight] = useState([]);
   const [clientState, setClientState] = useState('CLOSED');
   const [serverState, setServerState] = useState('LISTEN');
-  
+
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const [timerValue, setTimerValue] = useState(null);
 
@@ -32,10 +32,10 @@ function ThreeWayHandshakeSimulator() {
   const handleToggle = (type) => {
     setTransmissionStatus(prev => ({ ...prev, [type]: !prev[type] }));
   };
-  
+
   const stopTimer = () => {
-      clearInterval(timerRef.current);
-      setTimerValue(null);
+    clearInterval(timerRef.current);
+    setTimerValue(null);
   };
 
   const startTimer = () => {
@@ -54,7 +54,7 @@ function ThreeWayHandshakeSimulator() {
       });
     }, 1000);
   };
-  
+
   const handleSendSyn = () => {
     if (clientState !== 'CLOSED') {
       addToLog("🔴 Client cannot send SYN in its current state.");
@@ -63,7 +63,7 @@ function ThreeWayHandshakeSimulator() {
 
     const packetKey = `syn-${Date.now()}`;
     const willSucceed = transmissionStatus.syn;
-    
+
     addToLog(`(Client): Sending SYN...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'SYN', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
     setClientState('SYN_SENT');
@@ -116,25 +116,28 @@ function ThreeWayHandshakeSimulator() {
 
     addToLog(`(Client): Sending final ACK...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'ACK', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
-    setFinalAckSent(true); 
+    setFinalAckSent(true);
 
     setTimeout(() => {
       if (willSucceed) {
         addToLog(`(Server): ⭐️ Received ACK. Connection Established!`);
         setServerState('ESTABLISHED');
+        if (onHandshakeComplete) {
+          onHandshakeComplete();
+        }
       } else {
         addToLog(`(Network): 🔴 Final ACK was lost.`);
       }
       setPacketsInFlight(prev => prev.filter(p => p.key !== packetKey));
     }, ANIMATION_DURATION);
   };
-  
+
   useEffect(() => {
     return () => stopTimer();
   }, []);
 
   const getStatus = (state) => <span className={`status-badge ${state.toLowerCase()}`}>{state.replace('_', '-')}</span>;
-  
+
   return (
     <div className="app-container">
       <header>

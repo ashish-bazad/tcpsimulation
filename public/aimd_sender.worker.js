@@ -92,7 +92,7 @@ onmessage = (e) => {
         return;
       }
       postMessage({ type: 'LOG', message: `(Sender): Resending window from ${base} to ${nextseqnum - 1}.` });
-      for (let i = base; i < nextseqnum; i++) {
+      for (let i = base; i < Math.min(base + N, nextseqnum); i++) {
         postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
       }
       if (base < nextseqnum) {

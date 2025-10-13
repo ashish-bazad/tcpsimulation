@@ -17,8 +17,8 @@ const StatusDisplay = ({ windowBase, base, nextseqnum, timerValue, timerForPacke
       {windowBase !== undefined && <div className="status-item"><span className="label">windowBase:</span><span className="value base">{windowBase}</span></div>}
       {nextseqnum !== undefined && <div className="status-item"><span className="label">nextseqnum:</span><span className="value nextseqnum">{nextseqnum}</span></div>}
       {congestionWindow !== undefined && <div className="status-item"><span className="label">cwnd:</span><span className="value cwnd">{congestionWindow}</span></div>}
-      {slowStartThreshold !== undefined && <div className="status-item"><span className="label">ssthresh:</span><span className="value ssthresh">{slowStartThreshold}</span></div>}
       {requiredWindowSize !== undefined && <div className="status-item"><span className="label">Required Window Size:</span><span className="value requiredWindowSize">{requiredWindowSize}</span></div>}
+      {slowStartThreshold !== undefined && <div className="status-item"><span className="label">ssthresh:</span><span className="value ssthresh">{slowStartThreshold}</span></div>}
       
       {/* Timer Display */}
       <div className="status-item">

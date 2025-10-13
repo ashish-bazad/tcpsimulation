@@ -1,14 +1,13 @@
 // public/tcp_sender.worker.js
 let N = 1; // Congestion window size
-let ssthresh = 8; // Slow start threshold
+let ssthresh = 4; // Slow start threshold
 let base = 0;
 let windowBase = 0;
 let nextseqnum = 0;
 let totalPackets;
 let timeoutDuration;
 let acksReceivedForCurrentWindow = 0;
-let manualIncrease = false;
-let manualDecrease = false;
+var requiredWindowSize = N;
 let phase = 'slow_start'; // slow_start, aimd
 
 let timerInterval = null;
@@ -27,13 +26,12 @@ const startTimer = () => {
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
       timerInterval = null;
-      ssthresh = Math.max(1, Math.floor(N / 2));
-      N = 1;
-      phase = 'slow_start';
-      manualDecrease = true;
+      if(phase === 'slow_start') ssthresh = Math.max(1, Math.floor(N / 2));
+      if(phase === 'slow_start') requiredWindowSize = 1;
+      if(phase == 'aimd') requiredWindowSize = Math.max(1, Math.floor(N / 2));
       acksReceivedForCurrentWindow = 0;
-      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
-      postMessage({ type: 'LOG', message: `(Sender): TIMEOUT for packets starting from base ${base}. ssthresh is now ${ssthresh} and cwnd is ${N}. Entering Slow Start.` });
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
+      postMessage({ type: 'LOG', message: `(Sender): TIMEOUT for packets starting from base ${base}. ssthresh is now ${ssthresh} and cwnd is ${N}.` });
       postMessage({ type: 'TIMEOUT_EVENT' });
     }
   }, 1000);
@@ -52,20 +50,17 @@ onmessage = (e) => {
     case 'INIT':
       totalPackets = payload.totalPackets;
       timeoutDuration = payload.timeoutDuration;
+      ssthresh = payload.ssthresh;
       base = 0;
       windowBase = 0;
       nextseqnum = 0;
       stopTimer();
-      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
       break;
 
     case 'SEND_WINDOW':
-      if (manualIncrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please increase the window size before sending more packets!` });
-        return;
-      }
-      if (manualDecrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please decrease the window size before sending more packets!` });
+      if(N !== requiredWindowSize) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please adjust the window size before sending packets!` })
         return;
       }
       if (windowBase !== base) {
@@ -78,7 +73,7 @@ onmessage = (e) => {
             }
             postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
             nextseqnum++;
-            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
+            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
           } else {
             postMessage({ type: 'LOG', message: `(Sender): 🔴 Packet ${i} already sent, please use resend window or move window!` });
             break;
@@ -91,21 +86,19 @@ onmessage = (e) => {
       if (windowBase < base) {
         windowBase += 1;
         postMessage({ type: 'LOG', message: `(Sender): Window moved to start at packet ${windowBase}.` });
-        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
+        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
+      } else {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Cannot move window beyond base ${base}.` });
       }
       break;
 
     case 'RESEND_WINDOW':
-      if (manualIncrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please increase the window size before sending more packets!` });
-        return;
-      }
-      if (manualDecrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please decrease the window size before sending more packets!` });
+      if(N !== requiredWindowSize) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Please adjust the window size before resending packets!` })
         return;
       }
       postMessage({ type: 'LOG', message: `(Sender): Resending window from ${base} to ${nextseqnum - 1}.` });
-      for (let i = base; i < nextseqnum; i++) {
+      for (let i = base; i < Math.min(base + N, nextseqnum); i++) {
         postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
       }
       if (base < nextseqnum) {
@@ -117,7 +110,15 @@ onmessage = (e) => {
       if (payload.ack >= base) {
         acksReceivedForCurrentWindow++;
         if (acksReceivedForCurrentWindow >= N) {
-          manualIncrease = true;
+          if(phase === 'slow_start') {
+            requiredWindowSize *= 2;
+            if(requiredWindowSize >= ssthresh) {
+              phase = 'aimd';
+              postMessage({ type: 'LOG', message: `(Sender): ⭐️ Transitioning to AIMD phase.` });
+              postMessage({ type: 'STATE_UPDATE', newPhase: phase});
+            }
+          }
+          else if(phase === 'aimd') requiredWindowSize +=1;
           acksReceivedForCurrentWindow = 0;
         }
 
@@ -127,45 +128,34 @@ onmessage = (e) => {
           stopTimer();
           if (base === totalPackets) {
             postMessage({ type: 'LOG', message: `(Sender): ⭐️ All packets acknowledged!` });
+            phase = 'closure';
+            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
+            return;
           }
         } else {
           startTimer();
         }
-        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
+        postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize, phase });
       }
       break;
 
     case 'INCREASE_WINDOW_MANUAL':
-      if (manualDecrease || !manualIncrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Cannot increase window size now!` });
-        return;
-      }
-      if (phase === 'slow_start') {
-        N *= 2;
-        postMessage({ type: 'LOG', message: `(Sender): Full window ACK'd. cwnd doubles to ${N}.` });
-        if (N >= ssthresh) {
-          phase = 'aimd';
-          postMessage({ type: 'LOG', message: `(Sender): ssthresh reached. Entering AIMD phase.` });
-        }
-      } else { // AIMD phase
-        N++;
-        postMessage({ type: 'LOG', message: `(Sender): Full window ACK'd. cwnd increments to ${N}.` });
-      }
-      manualIncrease = false;
-      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
+      N++;
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
       break;
 
     case 'DECREASE_WINDOW_MANUAL':
-      if (manualIncrease || !manualDecrease) {
-        postMessage({ type: 'LOG', message: `(Sender): 🔴 Cannot decrease window size now!` });
+      if(N <= 1) {
+        postMessage({ type: 'LOG', message: `(Sender): 🔴 Window size cannot be less than 1.` });
         return;
       }
-      ssthresh = Math.max(1, Math.floor(N / 2));
-      N = 1;
-      phase = 'slow_start';
-      postMessage({ type: 'LOG', message: `(Sender): Window size manually decreased to ${N}, ssthreshold set to ${ssthresh}. Entering Slow Start.` });
-      manualDecrease = false;
-      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase });
+      N--;
+      if(phase === 'slow_start') ssthresh = Math.max(1, Math.floor(N / 2));
+      if (phase !== 'aimd') {
+        phase = 'slow_start';
+      }
+      postMessage({ type: 'LOG', message: `(Sender): Window size manually decreased to ${N}, ssthreshold set to ${ssthresh}.` });
+      postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newPhase: phase, newRequiredWindowSize: requiredWindowSize });
       break;
   }
 };
