@@ -36,25 +36,14 @@ function TCPSimulator() {
   const [windowBase, setWindowBase] = useState(0);
   const [senderNextSeqNum, setSenderNextSeqNum] = useState(0);
   const [timerValue, setTimerValue] = useState(null);
-  const [hasTimedOut, setHasTimedOut] = useState(false);
-  const [timerForPacket, setTimerForPacket] = useState(null);
   const [windowSize, setWindowSize] = useState(INITIAL_WINDOW_SIZE);
   const [congestionWindow, setCongestionWindow] = useState(1);
   const [slowStartThreshold, setSlowStartThreshold] = useState(INITIAL_SSTHRESH);
   const [requiredWindowSize, setRequiredWindowSize] = useState(INITIAL_WINDOW_SIZE);
-  const [phaseChange, setPhaseChange] = useState(0);
-
-  let shouldChangePhase = useRef(true);
+  const [acksReceivedForCurrentWindow, setAcksReceivedForCurrentWindow] = useState(0);
+  const [expectedseqnum, setExpectedSeqNum] = useState(0);
   
   const [phase, setPhase] = useState('handshake'); // handshake, slow_start, aimd, closure
-  useEffect(() => {
-    if(shouldChangePhase.current) {
-      if(phase === 'slow_start') {
-        setPhaseChange(prev => prev + 1);
-        shouldChangePhase.current = false;
-      }
-    }
-  }, [phase]);
 
   const senderWorkerRef = useRef(null);
   const receiverWorkerRef = useRef(null);
@@ -74,17 +63,18 @@ function TCPSimulator() {
   };
 
   useEffect(() => {
-    if ((phase === 'slow_start' || phase === 'aimd') && !senderWorkerRef.current) {
-      senderWorkerRef.current = new Worker('/tcp_sender.worker.js');
+    if (phase === 'slow_start' && !senderWorkerRef.current) {
+      senderWorkerRef.current = new Worker('/slow_start_sender.worker.js');
       receiverWorkerRef.current = new Worker('/receiver.worker.js');
-      const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION, ssthresh: INITIAL_SSTHRESH };
+      const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION, ssthresh: INITIAL_SSTHRESH, senderBase: senderBase, windowBase: windowBase, nextseqnum: senderNextSeqNum, windowSize: windowSize, requiredWindowSize: requiredWindowSize, acksReceivedForCurrentWindow: acksReceivedForCurrentWindow  };
       senderWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
-      receiverWorkerRef.current.postMessage({ type: 'INIT' });
+      receiverWorkerRef.current.postMessage({ type: 'INIT', payload:{expectedseqnum: expectedseqnum} });
 
       senderWorkerRef.current.onmessage = (e) => {
-        const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newSlowStartThreshold, newPhase, newRequiredWindowSize } = e.data;
+        const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newSlowStartThreshold, newPhase, newRequiredWindowSize, newAcksReceivedForCurrentWindow } = e.data;
         if (message) addToLog(message);
         if (type === 'STATE_UPDATE') {
+          if (newAcksReceivedForCurrentWindow !== undefined) setAcksReceivedForCurrentWindow(newAcksReceivedForCurrentWindow);
           if (base !== undefined) setSenderBase(base);
           if (windowBase !== undefined) setWindowBase(windowBase);
           if (newRequiredWindowSize !== undefined) setRequiredWindowSize(newRequiredWindowSize);
@@ -97,23 +87,65 @@ function TCPSimulator() {
         if (type === 'SEND_PACKET') handlePacketTransmission(packet);
         if (type === 'TIMER_TICK') {
           setTimerValue(timeLeft);
-          setTimerForPacket(base);
-          setHasTimedOut(false);
         }
         if (type === 'TIMER_STOP') {
           setTimerValue(null);
-          setTimerForPacket(null);
-          setHasTimedOut(false);
         }
         if (type === 'TIMEOUT_EVENT') {
           setTimerValue('TIMEOUT!');
-          setHasTimedOut(true);
         }
       };
       receiverWorkerRef.current.onmessage = (e) => {
-        const { type, ack, message } = e.data;
+        const { type, ack, message, newExpectedSeqNum } = e.data;
         if (message) addToLog(message);
         if (type === 'SEND_ACK') handleAckTransmission(ack);
+        if (type === 'STATE_UPDATE') {
+          if (newExpectedSeqNum !== undefined) setExpectedSeqNum(newExpectedSeqNum);
+        }
+      };
+    }
+
+    if (phase === 'aimd' && !senderWorkerRef.current) {
+      senderWorkerRef.current = new Worker('/aimd_sender.worker.js');
+      receiverWorkerRef.current = new Worker('/receiver.worker.js');
+      const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION, senderBase: senderBase, windowBase: windowBase, nextseqnum: senderNextSeqNum, windowSize: windowSize, requiredWindowSize: requiredWindowSize, acksReceivedForCurrentWindow: acksReceivedForCurrentWindow  };
+      senderWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
+      receiverWorkerRef.current.postMessage({ type: 'INIT', payload:{expectedseqnum: expectedseqnum} });
+
+      senderWorkerRef.current.onmessage = (e) => {
+        const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newRequiredWindowSize, newAcksReceivedForCurrentWindow, newPhase } = e.data;
+        if (message) addToLog(message);
+        if (type === 'STATE_UPDATE') {
+          if (newAcksReceivedForCurrentWindow !== undefined) setAcksReceivedForCurrentWindow(newAcksReceivedForCurrentWindow);
+          if (base !== undefined) setSenderBase(base);
+          if (windowBase !== undefined) setWindowBase(windowBase);
+          if (newRequiredWindowSize !== undefined) setRequiredWindowSize(newRequiredWindowSize);
+          if (nextseqnum !== undefined) setSenderNextSeqNum(nextseqnum);
+          if (newWindowSize) setWindowSize(newWindowSize);
+          if (newCongestionWindow) setCongestionWindow(newCongestionWindow);
+          if (newPhase && newPhase !== phase) {
+            alert("AIMD Phase Complete! Starting TCP Closure.");
+            setPhase(newPhase);
+          }
+        }
+        if (type === 'SEND_PACKET') handlePacketTransmission(packet);
+        if (type === 'TIMER_TICK') {
+          setTimerValue(timeLeft);
+        }
+        if (type === 'TIMER_STOP') {
+          setTimerValue(null);
+        }
+        if (type === 'TIMEOUT_EVENT') {
+          setTimerValue('TIMEOUT!');
+        }
+      };
+      receiverWorkerRef.current.onmessage = (e) => {
+        const { type, ack, message, newExpectedSeqNum } = e.data;
+        if (message) addToLog(message);
+        if (type === 'SEND_ACK') handleAckTransmission(ack);
+        if (type === 'STATE_UPDATE') {
+          if (newExpectedSeqNum !== undefined) setExpectedSeqNum(newExpectedSeqNum);
+        }
       };
     }
 
@@ -127,20 +159,13 @@ function TCPSimulator() {
         receiverWorkerRef.current = null;
       }
     };
-  }, [phaseChange]);
+  }, [phase]);
 
   const handleHandshakeComplete = () => {
+    alert("TCP Handshake Complete! Starting Slow Start Phase.");
     addToLog("⭐️ TCP Handshake Complete. Starting Slow Start.");
     setPhase('slow_start');
   };
-
-  // useEffect(() => {
-  //   if (senderBase === TOTAL_PACKETS && phase !== 'closure' && phase !== 'handshake') {
-  //     addToLog("All packets sent and acknowledged. Starting TCP Closure.");
-  //     setPhase('closure');
-  //   }
-  // }, [senderBase, phase]);
-
 
   const handlePacketTransmission = (packet) => {
     const packetInfo = packetsRef.current.find(p => p.id === packet.seq);
@@ -184,36 +209,15 @@ function TCPSimulator() {
   };
 
   const handleSend = () => {
-    if (hasTimedOut) {
-      alert("A timeout has occurred. Please use 'Resend Window' to recover.");
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'SEND_WINDOW' });
   };
 
   const handleMoveWindow = () => {
-    if(isMoveWindowDisabled) {
-      postMessage({ type: 'LOG', message: `(Sender): 🔴 Window is already at the base, cannot move further!` });
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
   }
 
   const handleResend = () => {
-    if (!hasTimedOut) {
-      alert("Please wait for the timeout to occur before resending.");
-      return;
-    }
-    if (windowBase !== senderBase) {
-      alert("Please move the window before resending.");
-      return;
-    }
-    if(isResendDisabled) {
-      postMessage({ type: 'LOG', message: `(Sender): 🔴 No timeout has occurred, cannot resend!` });
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
-    setHasTimedOut(false);
   };
 
   const handleIncreaseWindow = () => {
@@ -232,10 +236,6 @@ function TCPSimulator() {
     return <TCPClosureSimulator />;
   }
 
-
-  const isResendDisabled = !hasTimedOut;
-  const isMoveWindowDisabled = windowBase === senderBase;
-
   return (
     <div className="app-container">
       <header>
@@ -248,7 +248,6 @@ function TCPSimulator() {
         base={senderBase}
         nextseqnum={senderNextSeqNum}
         timerValue={timerValue}
-        timerForPacket={timerForPacket}
         congestionWindow={congestionWindow}
         slowStartThreshold={slowStartThreshold}
         requiredWindowSize={requiredWindowSize}

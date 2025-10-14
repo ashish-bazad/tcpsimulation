@@ -34,10 +34,9 @@ function SlowStartSimulator() {
   const [requiredWindowSize, setRequiredWindowSize] = useState(1);
   const [senderNextSeqNum, setSenderNextSeqNum] = useState(0);
   const [timerValue, setTimerValue] = useState(null);
-  const [hasTimedOut, setHasTimedOut] = useState(false);
-  const [timerForPacket, setTimerForPacket] = useState(null);
   const [windowSize, setWindowSize] = useState(INITIAL_WINDOW_SIZE);
   const [congestionWindow, setCongestionWindow] = useState(1);
+  const [acksReceivedForCurrentWindow, setAcksReceivedForCurrentWindow] = useState(0);
 
   const senderWorkerRef = useRef(null);
   const receiverWorkerRef = useRef(null);
@@ -59,14 +58,15 @@ function SlowStartSimulator() {
   useEffect(() => {
     senderWorkerRef.current = new Worker('/slow_start_sender.worker.js');
     receiverWorkerRef.current = new Worker('/receiver.worker.js');
-    const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION };
+    const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION , senderBase: senderBase, windowBase: windowBase, windowSize: windowSize, requiredWindowSize: requiredWindowSize, nextseqnum: senderNextSeqNum, acksReceivedForCurrentWindow: acksReceivedForCurrentWindow};
     senderWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
     receiverWorkerRef.current.postMessage({ type: 'INIT' });
 
     senderWorkerRef.current.onmessage = (e) => {
-      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newRequiredWindowSize } = e.data;
+      const { type, packet, message, base, windowBase, nextseqnum, timeLeft, newWindowSize, newCongestionWindow, newRequiredWindowSize, newAcksReceivedForCurrentWindow } = e.data;
       if (message) addToLog(message);
       if (type === 'STATE_UPDATE') {
+        if(newAcksReceivedForCurrentWindow !== undefined) setAcksReceivedForCurrentWindow(newAcksReceivedForCurrentWindow);
         if(base !== undefined) setSenderBase(base);
         if(windowBase !== undefined) setWindowBase(windowBase);
         if(nextseqnum !== undefined) setSenderNextSeqNum(nextseqnum);
@@ -84,17 +84,12 @@ function SlowStartSimulator() {
       if (type === 'SEND_PACKET') handlePacketTransmission(packet);
       if (type === 'TIMER_TICK') {
         setTimerValue(timeLeft);
-        setTimerForPacket(base);
-        setHasTimedOut(false);
       }
       if (type === 'TIMER_STOP') {
         setTimerValue(null);
-        setTimerForPacket(null);
-        setHasTimedOut(false);
       }
       if (type === 'TIMEOUT_EVENT') {
         setTimerValue('TIMEOUT!');
-        setHasTimedOut(true);
       }
     };
     receiverWorkerRef.current.onmessage = (e) => {
@@ -151,37 +146,15 @@ function SlowStartSimulator() {
   };
 
   const handleSend = () => {
-    if (hasTimedOut) {
-      alert("A timeout has occurred. Please use 'Resend Window' to recover.");
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'SEND_WINDOW' });
   };
 
   const handleMoveWindow = () => {
-    if(isMoveWindowDisabled) {
-      addToLog("🔴 Please move the window only when the base has advanced.");
-      return;
-    }
-
     senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
   }
 
   const handleResend = () => {
-    if (!hasTimedOut) {
-      alert("Please wait for the timeout to occur before resending.");
-      return;
-    }
-    if(windowBase !== senderBase) {
-      alert("Please move the window before resending.");
-      return;
-    }
-    if(isResendDisabled) {
-      addToLog("🔴 Resend is disabled until a timeout occurs.");
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
-    setHasTimedOut(false);
   };
 
   const handleIncreaseWindow = () => {
@@ -191,9 +164,6 @@ function SlowStartSimulator() {
   const handleDecreaseWindow = () => {
     senderWorkerRef.current.postMessage({ type: 'DECREASE_WINDOW_MANUAL' });
   };
-  
-  const isResendDisabled = !hasTimedOut;
-  const isMoveWindowDisabled = windowBase === senderBase;
 
   return (
     <div className="app-container">
@@ -206,7 +176,7 @@ function SlowStartSimulator() {
         base={senderBase} 
         nextseqnum={senderNextSeqNum} 
         timerValue={timerValue}
-        timerForPacket={timerForPacket}
+        // timerForPacket={timerForPacket}
         congestionWindow={congestionWindow}
         requiredWindowSize={requiredWindowSize}
         // slowStartThreshold={slowStartThreshold}

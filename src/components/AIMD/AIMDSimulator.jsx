@@ -33,8 +33,6 @@ function AIMDSimulator() {
   const [windowBase, setWindowBase] = useState(0);
   const [senderNextSeqNum, setSenderNextSeqNum] = useState(0);
   const [timerValue, setTimerValue] = useState(null);
-  const [hasTimedOut, setHasTimedOut] = useState(false);
-  const [timerForPacket, setTimerForPacket] = useState(null);
   const [windowSize, setWindowSize] = useState(INITIAL_WINDOW_SIZE);
   const [congestionWindow, setCongestionWindow] = useState(INITIAL_WINDOW_SIZE);
   const [requiredWindowSize, setRequiredWindowSize] = useState(INITIAL_WINDOW_SIZE);
@@ -59,7 +57,7 @@ function AIMDSimulator() {
   useEffect(() => {
     senderWorkerRef.current = new Worker('/aimd_sender.worker.js');
     receiverWorkerRef.current = new Worker('/receiver.worker.js');
-    const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION };
+    const initPayload = { totalPackets: TOTAL_PACKETS, timeoutDuration: TIMEOUT_DURATION, senderBase: senderBase, windowBase: windowBase, windowSize: windowSize, requiredWindowSize: requiredWindowSize, nextseqnum: senderNextSeqNum };
     senderWorkerRef.current.postMessage({ type: 'INIT', payload: initPayload });
     receiverWorkerRef.current.postMessage({ type: 'INIT' });
 
@@ -81,17 +79,12 @@ function AIMDSimulator() {
       if (type === 'SEND_PACKET') handlePacketTransmission(packet);
       if (type === 'TIMER_TICK') {
         setTimerValue(timeLeft);
-        setTimerForPacket(base);
-        setHasTimedOut(false);
       }
       if (type === 'TIMER_STOP') {
         setTimerValue(null);
-        setTimerForPacket(null);
-        setHasTimedOut(false);
       }
       if (type === 'TIMEOUT_EVENT') {
         setTimerValue('TIMEOUT!');
-        setHasTimedOut(true);
       }
     };
     receiverWorkerRef.current.onmessage = (e) => {
@@ -148,37 +141,15 @@ function AIMDSimulator() {
   };
 
   const handleSend = () => {
-    if (hasTimedOut) {
-      alert("A timeout has occurred. Please use 'Resend Window' to recover.");
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'SEND_WINDOW' });
   };
 
   const handleMoveWindow = () => {
-    if(isMoveWindowDisabled) {
-      addToLog("(Sender): 🔴 Window is already at the base, cannot move further.")
-      return;
-    }
-
     senderWorkerRef.current.postMessage({ type: 'MOVE_WINDOW' });
   }
 
   const handleResend = () => {
-    if (!hasTimedOut) {
-      alert("Please wait for the timeout to occur before resending.");
-      return;
-    }
-    if(windowBase !== senderBase) {
-      alert("Please move the window before resending.");
-      return;
-    }
-    if(isResendDisabled) {
-      addToLog("(Sender): 🔴 Resend is disabled until a timeout occurs.")
-      return;
-    }
     senderWorkerRef.current.postMessage({ type: 'RESEND_WINDOW' });
-    setHasTimedOut(false);
   };
   
   const handleIncreaseWindow = () => {
@@ -189,8 +160,6 @@ function AIMDSimulator() {
     senderWorkerRef.current.postMessage({ type: 'DECREASE_WINDOW_MANUAL' });
   };
 
-  const isResendDisabled = !hasTimedOut;
-  const isMoveWindowDisabled = windowBase === senderBase;
 
   return (
     <div className="app-container">
@@ -203,7 +172,6 @@ function AIMDSimulator() {
         base={senderBase} 
         nextseqnum={senderNextSeqNum} 
         timerValue={timerValue}
-        timerForPacket={timerForPacket}
         congestionWindow={congestionWindow}
         requiredWindowSize={requiredWindowSize}
       />
