@@ -6,74 +6,34 @@ import StatusDisplay from '../StatusDisplay';
 import './ThreeWayHandshake.css';
 
 const ANIMATION_DURATION = 1500;
-const TIMEOUT_DURATION = 7; // in seconds
 
 function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
   const [log, setLog] = useState([]);
   const [packetsInFlight, setPacketsInFlight] = useState([]);
-  const [clientState, setClientState] = useState('CLOSED');
-  const [serverState, setServerState] = useState('LISTEN');
-
-  const [hasTimedOut, setHasTimedOut] = useState(false);
-  const [timerValue, setTimerValue] = useState(null);
-
-  const [transmissionStatus, setTransmissionStatus] = useState({
-    syn: true,
-    synAck: true,
-    ack: true,
-  });
+  const [clientStateBits, setClientStateBits] = useState(1);
+  const [serverStateBits, setServerStateBits] = useState(0);
 
   const [finalAckSent, setFinalAckSent] = useState(false);
 
-  const timerRef = useRef(null);
-
   const addToLog = (message) => setLog(prev => [...prev, message]);
 
-  const handleToggle = (type) => {
-    setTransmissionStatus(prev => ({ ...prev, [type]: !prev[type] }));
-  };
-
-  const stopTimer = () => {
-    clearInterval(timerRef.current);
-    setTimerValue(null);
-  };
-
-  const startTimer = () => {
-    stopTimer();
-    setTimerValue(TIMEOUT_DURATION);
-    timerRef.current = setInterval(() => {
-      setTimerValue(prev => {
-        if (prev !== null && prev <= 1) { // Check for null to prevent race condition on unmount
-          stopTimer();
-          addToLog(`(Client): ⏱️ TIMEOUT waiting for SYN-ACK!`);
-          setHasTimedOut(true);
-          setClientState('CLOSED'); // Only reset client state
-          return 'TIMEOUT!';
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
   const handleSendSyn = () => {
-    if (clientState !== 'CLOSED') {
-      addToLog("🔴 Client cannot send SYN in its current state.");
+    if ((clientStateBits & 1) === 0) {
+      addToLog("🔴 Client cannot send SYN in its current state.")
       return;
     }
 
     const packetKey = `syn-${Date.now()}`;
-    const willSucceed = transmissionStatus.syn;
+    const willSucceed = true;
 
     addToLog(`(Client): Sending SYN...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'SYN', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
-    setClientState('SYN_SENT');
-    setHasTimedOut(false);
-    startTimer();
 
     setTimeout(() => {
       if (willSucceed) {
+        setClientStateBits(clientStateBits & ~1);
         addToLog(`(Server): Received SYN.`);
-        setServerState('SYN_RCVD');
+        setServerStateBits(serverStateBits | 1);
       } else {
         addToLog(`(Network): 🔴 SYN was lost.`);
       }
@@ -82,22 +42,22 @@ function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
   };
 
   const handleSendSynAck = () => {
-    if (serverState !== 'SYN_RCVD') {
-      addToLog("🔴 Server cannot send SYN-ACK in its current state.");
+    if ((serverStateBits & 1) === 0) {
+      addToLog("🔴 Server cannot send SYN-ACK in its current state.")
       return;
     }
 
     const packetKey = `syn-ack-${Date.now()}`;
-    const willSucceed = transmissionStatus.synAck;
+    const willSucceed = true;
 
     addToLog(`(Server): Sending SYN-ACK...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'ack', seq: 'SYN-ACK', y: 100, status: willSucceed ? 'in-flight' : 'lost' }]);
 
     setTimeout(() => {
       if (willSucceed) {
+        setServerStateBits(serverStateBits & ~1);
         addToLog(`(Client): Received SYN-ACK.`);
-        setClientState('ESTABLISHED');
-        stopTimer();
+        setClientStateBits(clientStateBits | 2);
       } else {
         addToLog(`(Network): 🔴 SYN-ACK was lost.`);
       }
@@ -106,13 +66,13 @@ function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
   };
 
   const handleSendAck = () => {
-    if (clientState !== 'ESTABLISHED' || finalAckSent) {
+    if ((clientStateBits & 2) === 0 || finalAckSent) {
       addToLog("🔴 Client cannot send final ACK in its current state.");
       return;
     }
 
     const packetKey = `ack-${Date.now()}`;
-    const willSucceed = transmissionStatus.ack;
+    const willSucceed = true;
 
     addToLog(`(Client): Sending final ACK...`);
     setPacketsInFlight(prev => [...prev, { key: packetKey, type: 'packet', seq: 'ACK', y: 50, status: willSucceed ? 'in-flight' : 'lost' }]);
@@ -121,7 +81,7 @@ function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
     setTimeout(() => {
       if (willSucceed) {
         addToLog(`(Server): ⭐️ Received ACK. Connection Established!`);
-        setServerState('ESTABLISHED');
+        setServerStateBits(serverStateBits | 2);
         if (onHandshakeComplete) {
           onHandshakeComplete();
         }
@@ -132,11 +92,10 @@ function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
     }, ANIMATION_DURATION);
   };
 
-  useEffect(() => {
-    return () => stopTimer();
-  }, []);
-
-  const getStatus = (state) => <span className={`status-badge ${state.toLowerCase()}`}>{state.replace('_', '-')}</span>;
+  const getStatus = (stateBits) => {
+    const status = (stateBits & 2) ? 'ESTABLISHED' : 'CLOSED';
+    return <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>;
+  };
 
   return (
     <div className="app-container">
@@ -144,48 +103,12 @@ function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
         <h1>3-Way Handshake Simulator (Manual)</h1>
       </header>
 
-      <StatusDisplay timerValue={timerValue} />
-
-      <div className="controls-table">
-        <table>
-          <tbody>
-            <tr>
-              <td>SYN Success</td>
-              <td>
-                <label className="switch">
-                  <input type="checkbox" checked={transmissionStatus.syn} onChange={() => handleToggle('syn')} />
-                  <span className="slider"></span>
-                </label>
-              </td>
-            </tr>
-            <tr>
-              <td>SYN-ACK Success</td>
-              <td>
-                <label className="switch">
-                  <input type="checkbox" checked={transmissionStatus.synAck} onChange={() => handleToggle('synAck')} />
-                  <span className="slider"></span>
-                </label>
-              </td>
-            </tr>
-            <tr>
-              <td>Final ACK Success</td>
-              <td>
-                <label className="switch">
-                  <input type="checkbox" checked={transmissionStatus.ack} onChange={() => handleToggle('ack')} />
-                  <span className="slider"></span>
-                </label>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
       <div className="handshake-container">
         <div className="entity-container">
           <h2>Client</h2>
-          <p>Status: {getStatus(clientState)}</p>
+          <p>Status: {getStatus(clientStateBits)}</p>
           <button onClick={handleSendSyn}>
-            {hasTimedOut ? "Resend SYN" : "Send SYN"}
+            {"Send SYN"}
           </button>
           <button onClick={handleSendAck}>
             Send Final ACK
@@ -193,7 +116,7 @@ function ThreeWayHandshakeSimulator({ onHandshakeComplete }) {
         </div>
         <div className="entity-container">
           <h2>Server</h2>
-          <p>Status: {getStatus(serverState)}</p>
+          <p>Status: {getStatus(serverStateBits)}</p>
           <button onClick={handleSendSynAck}>
             Send SYN-ACK
           </button>

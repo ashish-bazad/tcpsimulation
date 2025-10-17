@@ -123,8 +123,10 @@ onmessage = (e) => {
         }
         postMessage({ type: 'LOG', message: `(Sender): Resending window from ${base} to ${nextseqnum - 1}.`});
         // Resend all packets in the current window and restart the timer
-        for (let i = base; i < Math.min(base + N, nextseqnum); i++) {
+        for (let i = base; i < Math.min(base + N, totalPackets); i++) {
             postMessage({ type: 'SEND_PACKET', packet: { seq: i } });
+            nextseqnum = Math.max(nextseqnum, i + 1);
+            postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize, newAcksReceivedForCurrentWindow: acksReceivedForCurrentWindow });
         }
         if (base < nextseqnum) {
             startTimer();
