@@ -137,7 +137,7 @@ function TCPClosureSimulator() {
         <h1>TCP Closure Simulator (4-Way Handshake)</h1>
       </header>
 
-      <StatusDisplay />
+      {/* <StatusDisplay /> */}
 
       <div className="handshake-container">
         <div className="entity-container">
