@@ -1,25 +1,27 @@
 .log-container {
   width: 100%;
-  min-width: 600px;
-  max-width: 600px;
+  min-width: 300px;
+  max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  background-color: rgb(160, 212, 255);
+  background-color: #f0f8ff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .log-container h5 {
   text-align: center;
   margin: 0;
-  padding: 10px;
-  background-color: rgb(120, 180, 230);
+  padding: 15px;
+  background-color: #87ceeb;
   color: black;
+  font-size: 1.2rem;
 }
 
 .log-content {
   text-align: left;
-  overflow-y: scroll;
+  overflow-y: auto;
   height: 350px;
-  padding: 10px;
+  padding: 15px;
   color: black;
   font-family: 'Courier New', Courier, monospace;
 }
@@ -31,7 +33,8 @@
 }
 
 .log-content li {
-  padding-bottom: 5px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #ccc;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
 }

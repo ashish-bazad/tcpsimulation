@@ -1,14 +1,13 @@
-/* src/components/StatusDisplay.css */
 .status-container {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   background-color: #1a1a1a;
-  padding: 0.5rem 1.5rem;
+  padding: 1rem 1.5rem;
   border-radius: 8px;
   border: 1px solid #555;
   margin-bottom: 1.5rem;
   justify-content: center;
-  flex-wrap: wrap; /* Allow wrapping on small screens */
+  flex-wrap: wrap;
 }
 
 .status-item {
@@ -29,9 +28,22 @@
   font-weight: bold;
 }
 
-/* Specific colors */
-.value.base { color: #2ecc71; } /* Green */
-.value.nextseqnum { color: #3498db; } /* Blue */
-.value.timer { color: #ffc107; } /* Yellow */
-.value.cwnd { color: #e74c3c; } /* Red */
-.value.ssthresh { color: #9b59b6; } /* Purple */
+.value.base {
+  color: #2ecc71;
+}
+
+.value.nextseqnum {
+  color: #3498db;
+}
+
+.value.timer {
+  color: #ffc107;
+}
+
+.value.cwnd {
+  color: #e74c3c;
+}
+
+.value.ssthresh {
+  color: #9b59b6;
+}

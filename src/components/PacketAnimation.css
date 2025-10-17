@@ -3,12 +3,12 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 700px;
-  margin: 2rem 0;
+  max-width: 800px;
+  margin: 2rem auto;
   background-color: #2c3e50;
   border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .entity {
@@ -17,22 +17,30 @@
   padding: 1rem;
   background-color: #34495e;
   border-radius: 4px;
+  color: white;
 }
 
 .animation-svg {
   flex-grow: 1;
-  overflow: hidden; /* Hide elements when they animate off-screen */
+  overflow: hidden;
 }
 
-/* Keyframes for the sliding animation */
 @keyframes slide {
-  from { transform: translateX(0); }
-  to { transform: translateX(460px); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(100% - 40px));
+  }
 }
 
 @keyframes slide-ack {
-  from { transform: translateX(0); }
-  to { transform: translateX(-460px); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% + 40px));
+  }
 }
 
 .transit-item.packet {
@@ -48,11 +56,13 @@
   font-size: 0.8rem;
   font-weight: bold;
 }
+
 .transit-item .circle-bg {
   stroke-width: 2;
   fill: #3498db;
   stroke: #2980b9;
 }
+
 .transit-item.ack .circle-bg {
   fill: #2ecc71;
   stroke: #27ae60;
@@ -69,6 +79,17 @@
 }
 
 .transit-item.lost .circle-bg {
-    fill: #e74c3c;
-    stroke: #c0392b;
+  fill: #e74c3c;
+  stroke: #c0392b;
+}
+
+@media (max-width: 768px) {
+  .animation-container {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  .entity {
+    margin-bottom: 1rem;
+  }
 }

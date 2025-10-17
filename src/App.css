@@ -7,10 +7,19 @@
 
 body {
   background-color: #242424;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .app-container header {
   margin-bottom: 2rem;
+  border-bottom: 2px solid #646cff;
+  padding-bottom: 1rem;
+}
+
+.app-container header h1 {
+  font-size: 2.5rem;
+  color: #646cff;
 }
 
 .app-container header button {
@@ -20,19 +29,22 @@ body {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.25s ease;
   border-radius: 8px;
   border: 1px solid transparent;
+  color: #fff;
 }
 
 .app-container header button:hover {
   border-color: #646cff;
+  background-color: #2a2a2a;
 }
 
 .app-container header button:disabled {
   background-color: #333;
   cursor: not-allowed;
   border-color: #555;
+  opacity: 0.6;
 }
 
 .main-content {
@@ -58,5 +70,37 @@ body {
   border: 1px solid #555;
   font-family: 'Courier New', Courier, monospace;
   font-size: 1.2rem;
-  color: #ffc107; /* A nice amber color */
+  color: #ffc107;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+.controls-container {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.controls-container button {
+  padding: 0.8em 1.5em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #646cff;
+  color: white;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border-radius: 8px;
+  border: none;
+}
+
+.controls-container button:hover {
+  background-color: #535bf2;
+}
+
+.controls-container button:disabled {
+  background-color: #333;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
