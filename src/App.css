@@ -1,8 +1,11 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  /* Reduced padding for mobile */
+  padding: 1rem; 
   text-align: center;
+  /* Make root take full width on mobile */
+  width: 100%; 
 }
 
 body {
@@ -18,8 +21,9 @@ body {
 }
 
 .app-container header h1 {
-  font-size: 2.5rem;
+  font-size: 2.5rem; /* This will be overridden by index.css h1 */
   color: #646cff;
+  word-break: break-word; /* Allow long titles to wrap */
 }
 
 .app-container header button {
@@ -52,6 +56,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 2rem;
+  width: 100%; /* Ensure main content uses full width */
 }
 
 @media (min-width: 900px) {
@@ -59,6 +64,11 @@ body {
     flex-direction: row;
     align-items: flex-start;
     justify-content: center;
+  }
+  
+  /* Restore padding for larger screens */
+  #root {
+    padding: 2rem;
   }
 }
 
@@ -72,6 +82,7 @@ body {
   font-size: 1.2rem;
   color: #ffc107;
   box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+  word-break: break-all; /* Allow timer text to break */
 }
 
 .controls-container {
@@ -93,6 +104,9 @@ body {
   transition: all 0.25s ease;
   border-radius: 8px;
   border: none;
+  /* Allow buttons to shrink if needed */
+  flex-grow: 1;
+  flex-basis: 150px;
 }
 
 .controls-container button:hover {

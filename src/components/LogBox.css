@@ -1,6 +1,6 @@
 .log-container {
   width: 100%;
-  min-width: 300px;
+  min-width: 0; /* Allow shrinking below 300px if needed */
   max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
@@ -37,4 +37,5 @@
   border-bottom: 1px solid #ccc;
   margin-bottom: 8px;
   font-size: 0.9rem;
+  word-break: break-word; /* Allow long log lines to wrap */
 }

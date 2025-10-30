@@ -1,20 +1,30 @@
 import React from 'react';
 import './PacketAnimation.css';
 
-const SVG_WIDTH = 500;
-const SVG_HEIGHT = 200;
+// Remove fixed width/height
+// const SVG_WIDTH = 500;
+// const SVG_HEIGHT = 200;
 
 // This component renders the packets and ACKs currently in transit
 const PacketAnimation = ({ packetsInFlight }) => {
   return (
     <div className="animation-container">
       <div className="entity sender">Sender</div>
-      <svg width={SVG_WIDTH} height={SVG_HEIGHT} className="animation-svg">
+      {/* Update SVG:
+        - Remove fixed width/height.
+        - Add viewBox="0 0 500 200" to define the coordinate system.
+        - Add preserveAspectRatio="xMidYMid meet" for scaling.
+      */}
+      <svg 
+        viewBox="0 0 500 200" 
+        preserveAspectRatio="xMidYMid meet" 
+        className="animation-svg"
+      >
         {packetsInFlight.map((p) => {
           const isPacket = p.type === 'packet';
-          // Animate from left-to-right for packets, right-to-left for ACKs
-          const startX = isPacket ? 20 : SVG_WIDTH - 20;
-          const endX = isPacket ? SVG_WIDTH - 20 : 20;
+          // Use the viewBox coordinates
+          const startX = isPacket ? 20 : 500 - 20;
+          const endX = isPacket ? 500 - 20 : 20;
 
           return (
             <g
