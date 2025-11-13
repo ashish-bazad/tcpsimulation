@@ -1,20 +1,18 @@
+// src/components/PacketAnimation.jsx
 import React from 'react';
 import './PacketAnimation.css';
-
-// Remove fixed width/height
-// const SVG_WIDTH = 500;
-// const SVG_HEIGHT = 200;
 
 // This component renders the packets and ACKs currently in transit
 const PacketAnimation = ({ packetsInFlight }) => {
   return (
     <div className="animation-container">
-      <div className="entity sender">Sender</div>
-      {/* Update SVG:
-        - Remove fixed width/height.
-        - Add viewBox="0 0 500 200" to define the coordinate system.
-        - Add preserveAspectRatio="xMidYMid meet" for scaling.
-      */}
+      {/* New container for labels */}
+      <div className="entity-label-container">
+        <div className="entity sender">Sender</div>
+        <div className="entity receiver">Receiver</div>
+      </div>
+      
+      {/* The SVG now sits below the label container */}
       <svg 
         viewBox="0 0 500 200" 
         preserveAspectRatio="xMidYMid meet" 
@@ -40,7 +38,7 @@ const PacketAnimation = ({ packetsInFlight }) => {
           );
         })}
       </svg>
-      <div className="entity receiver">Receiver</div>
+      {/* Old entity divs that were here are removed */}
     </div>
   );
 };

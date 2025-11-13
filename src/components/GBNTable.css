@@ -1,15 +1,16 @@
 .table-container {
-  border: 2px solid #646cff;
+  border: 2px solid #646cff; /* CHANGED: Reverted to original accent border */
   padding: 10px; /* Reduce padding */
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
   text-align: center;
   font-size: 1rem;
-  background-color: #2a2a2a;
-  color: white;
+  background-color: #f8f9fa; /* Off-white card */
+  color: #333333; /* Dark text */
   margin-bottom: 20px;
   border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07); /* Visible shadow */
 }
 
 table {
@@ -19,7 +20,7 @@ table {
 
 th,
 td {
-  border: 1px solid #555;
+  border: 1px solid #ced4da; /* Clearer, visible cell borders */
   padding: 8px; /* Reduce cell padding */
   min-width: 45px; /* Reduce min-width */
   height: 45px; /* Reduce height */
@@ -28,7 +29,7 @@ td {
 }
 
 th {
-  background-color: #444;
+  background-color: #ffffff; /* Pure white header for contrast */
 }
 
 .window-active {
@@ -38,7 +39,7 @@ th {
 }
 
 .control-row {
-  background-color: #3e4e5e;
+  background-color: #ffffff; /* Pure white for contrast */
 }
 
 .control-row td {

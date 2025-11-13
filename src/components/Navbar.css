@@ -1,18 +1,43 @@
 .navbar {
-  background-color: #333;
+  background-color: #dee2e6; /* Darker grey for distinction */
   padding: 1rem;
   display: flex;
-  justify-content: center;
+  justify-content: center; /* Center links on desktop */
+  align-items: center;
   gap: 1rem;
   margin-bottom: 2rem;
   border-radius: 8px;
+  flex-wrap: wrap; /* Allow links to wrap on desktop */
+  position: relative; 
+  min-height: 60px; /* Ensure space for hamburger */
+  border: 1px solid #adb5bd; /* Darker border */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07); /* Visible shadow */
+}
+
+/* Title is hidden by default (on desktop) */
+.navbar-title {
+  display: none;
+  color: #646cff;
+  font-size: 1.5em;
+  margin: 0;
+  text-align: center;
+  word-break: break-word;
+}
+
+.navbar-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
-.navbar button {
-  background-color: #555;
-  color: white;
-  border: none;
+/* * IMPORTANT: Scoped button styles to .navbar-links
+ * This stops the hamburger-menu from getting these styles.
+*/
+.navbar-links button {
+  background-color: #f1f3f5; /* Lighter than navbar, darker than page */
+  color: #495057; /* Muted, professional text color */
+  border: 1px solid #ced4da; /* Add border to buttons */
   padding: 0.8rem 1.2rem;
   cursor: pointer;
   border-radius: 5px;
@@ -20,10 +45,108 @@
   transition: background-color 0.3s ease;
 }
 
-.navbar button:hover {
-  background-color: #777;
+.navbar-links button:hover {
+  background-color: #ced4da; /* Darker on hover */
 }
 
-.navbar button.active {
-  background-color: #646cff;
+.navbar-links button.active {
+  background-color: #646cff; /* Accent color for active */
+  color: white;
+  border-color: #646cff;
+}
+
+/* Hamburger button styles */
+.hamburger-menu {
+  display: none; /* Hidden by default */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  position: absolute; 
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  /* Reset styles inherited from 'button' */
+  font-size: 1rem; 
+}
+
+.hamburger-bar {
+  display: block;
+  width: 25px;
+  height: 3px;
+  margin: 5px 0;
+  background-color: #333333; /* Dark bar to be visible */
+  transition: 0.3s;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .navbar {
+    justify-content: center; /* Center the title */
+  }
+  
+  /* Show title on mobile */
+  .navbar-title {
+    display: block;
+    font-size: 1.2em;
+    /* Add padding to not overlap with hamburger */
+    padding-left: 45px;
+    padding-right: 45px;
+  }
+
+  .hamburger-menu {
+    display: block; /* Show hamburger */
+  }
+
+  /* Hide desktop links */
+  .navbar-links {
+    display: none; 
+  }
+
+  /* Styles for the dropdown menu */
+  .navbar-links.open {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: absolute;
+    top: 100%; /* Position dropdown below navbar */
+    left: 0;
+    background-color: #dee2e6; /* Match navbar grey */
+    padding: 1rem;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow for dropdown */
+    z-index: 1000;
+    gap: 0; /* Remove gap, use borders */
+  }
+
+  /* Style dropdown items to look like a menu, not big buttons */
+  .navbar-links.open button {
+    width: 100%;
+    text-align: left;
+    padding: 1rem;
+    font-size: 1rem;
+    background-color: #f1f3f5; /* Lighter background for item */
+    color: #333; /* Dark text */
+    border: none;
+    border-bottom: 1px solid #adb5bd; /* DEMARCATION BORDER */
+    border-left: 1px solid #adb5bd;
+    border-right: 1px solid #adb5bd;
+    border-radius: 0; /* Square items */
+  }
+
+  /* Add border to top of first item */
+  .navbar-links.open button:first-child {
+    border-top: 1px solid #adb5bd; /* DEMARCATION BORDER */
+    border-radius: 5px 5px 0 0; /* Rounded top corners */
+  }
+
+  .navbar-links.open button:last-child {
+    border-radius: 0 0 5px 5px; /* Rounded bottom corners */
+  }
+
+  .navbar-links.open button:hover,
+  .navbar-links.open button:active { /* ADDED :active FOR TOUCH */
+    background-color: #e9ecef; /* Light grey on hover/tap */
+  }
 }

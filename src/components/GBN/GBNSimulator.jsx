@@ -172,14 +172,8 @@ function GBNApp() {
   
   return (
     <div className="app-container">
-      <header>
-        <h1>Go-Back-N Protocol Simulator</h1>
-      </header>
       
       <StatusDisplay 
-        windowBase={windowBase}
-        base={senderBase} 
-        nextseqnum={senderNextSeqNum} 
         timerValue={timerValue}
         timerForPacket={timerForPacket}
       />

@@ -33,6 +33,7 @@ const startTimer = () => {
       acksReceivedForCurrentWindow = 0;
       postMessage({ type: 'STATE_UPDATE', newRequiredWindowSize: requiredWindowSize, newAcksReceivedForCurrentWindow: acksReceivedForCurrentWindow });
       postMessage({ type: 'LOG', message: `(Sender): TIMEOUT for packets starting from base ${base}. Awaiting manual window decrease.` });
+      postMessage({ type: 'LOG', message: `(Sender): ➡️ Required window size set to ${requiredWindowSize} due to timeout.` });
       postMessage({ type: 'TIMEOUT_EVENT' });
     }
   }, 1000);
@@ -62,6 +63,7 @@ onmessage = (e) => {
 
       stopTimer();
       postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newRequiredWindowSize: requiredWindowSize, newAcksReceivedForCurrentWindow: acksReceivedForCurrentWindow });
+      postMessage({ type: 'LOG', message: `(Sender): ➡️ Initial required window size: ${requiredWindowSize}.` });
       break;
 
     case 'SEND_WINDOW':
@@ -135,6 +137,7 @@ onmessage = (e) => {
         acksReceivedForCurrentWindow++;
         if (acksReceivedForCurrentWindow >= N) {
           requiredWindowSize++;
+          postMessage({ type: 'LOG', message: `(Sender): ➡️ Full window ACK'd. Required window size increases to ${requiredWindowSize}.` });
           acksReceivedForCurrentWindow = 0;
         }
 

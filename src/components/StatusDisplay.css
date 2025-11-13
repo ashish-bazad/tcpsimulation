@@ -1,13 +1,14 @@
 .status-container {
   display: flex;
   gap: 1rem; /* Slightly reduce gap */
-  background-color: #1a1a1a;
+  background-color: #e9ecef; /* CHANGED: Was #f8f9fa */
   padding: 1rem; /* Slightly reduce padding */
   border-radius: 8px;
-  border: 1px solid #555;
+  border: 1px solid #ced4da; /* Clear border */
   margin-bottom: 1.5rem;
   justify-content: center;
   flex-wrap: wrap;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07); /* Visible shadow */
 }
 
 .status-item {
@@ -18,7 +19,7 @@
 
 .status-item .label {
   font-family: 'Courier New', Courier, monospace;
-  color: #999;
+  color: #495057; /* Muted grey for labels */
   font-size: 1.0rem; /* Slightly smaller label */
   white-space: nowrap; /* Keep label on one line */
 }
@@ -52,7 +53,7 @@
 }
 
 .value.timer {
-  color: #ffc107;
+  color: #000;
 }
 
 .value.cwnd {

@@ -1,27 +1,50 @@
+/* src/components/PacketAnimation.css */
 .animation-container {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  /* Changed to column to stack labels above SVG */
+  flex-direction: column; 
+  /* align-items: center; /* Removed */
+  /* justify-content: space-between; /* Removed */
   width: 100%;
   max-width: 800px;
   margin: 2rem auto;
-  background-color: #2c3e50;
+  background-color: #f8f9fa; /* Off-white card */
   border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07); /* Visible shadow */
+  border: 1px solid #ced4da; /* Clear border */
+}
+
+/* New styles for the label container */
+.entity-label-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 1rem; /* Space between labels and animation */
 }
 
 .entity {
   font-weight: bold;
-  font-size: 1.2rem;
-  padding: 1rem;
-  background-color: #34495e;
+  /* Smaller base size for mobile */
+  font-size: 1rem;
+  padding: 0.5rem;
+  background-color: #dee2e6; /* Even lighter grey */
   border-radius: 4px;
-  color: white;
+  color: #343a40; /* Dark text for contrast */
+  border: 1px solid #adb5bd; /* Darker border */
+}
+
+/* Restore larger size on desktops */
+@media (min-width: 768px) {
+  .entity {
+    font-size: 1.2rem;
+    padding: 1rem;
+  }
 }
 
 .animation-svg {
-  flex-grow: 1;
+  /* flex-grow: 1; /* Removed */
+  width: 100%; /* Ensure SVG takes full width */
   overflow: hidden;
 }
 
@@ -52,7 +75,7 @@
 }
 
 .transit-item .label {
-  fill: white;
+  fill: black; /* CHANGED: Was white */
   font-size: 0.8rem;
   font-weight: bold;
 }
@@ -69,7 +92,7 @@
 }
 
 .path {
-  stroke: #95a5a6;
+  stroke: #adb5bd; /* A visible but muted grey */
   stroke-width: 2;
   stroke-dasharray: 5 5;
 }
@@ -83,13 +106,13 @@
   stroke: #c0392b;
 }
 
+/* Removed the problematic styles from the media query */
 @media (max-width: 768px) {
   .animation-container {
-    flex-direction: column;
     padding: 0.5rem;
   }
 
-  .entity {
-    margin-bottom: 1rem;
-  }
+  /* .entity { 
+    margin-bottom: 1rem; // Removed 
+  } */
 }

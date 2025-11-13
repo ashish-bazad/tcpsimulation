@@ -3,9 +3,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #213547; /* Primary dark text */
+  background-color: #ffffff; /* CHANGED: Was #e9ecef */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,8 +25,8 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  /* REMOVE this line: display: flex; */
+  /* REMOVE this line: place-items: center; */
   min-width: 320px; /* Keep a reasonable minimum */
   min-height: 100vh;
   /* Add box-sizing for easier layout */
@@ -50,13 +50,15 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f0f0f0; /* Default buttons are light grey */
+  color: #333; /* With dark text */
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s;
 }
 
 button:hover {
   border-color: #646cff;
+  background-color: #e0e0e0; /* Slightly darker on hover */
 }
 
 button:focus,
@@ -74,7 +76,7 @@ button:focus-visible {
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: #ffffff; /* CHANGED: Was #e9ecef */
   }
 
   a:hover {

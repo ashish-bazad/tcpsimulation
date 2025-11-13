@@ -163,7 +163,7 @@ function TCPSimulator() {
 
   const handleHandshakeComplete = () => {
     alert("TCP Handshake Complete! Starting Slow Start Phase.");
-    addToLog("⭐️ TCP Handshake Complete. Starting Slow Start.");
+    addToLog("➡️ TCP Handshake Complete. Starting Slow Start.");
     setPhase('slow_start');
   };
 
@@ -249,7 +249,6 @@ function TCPSimulator() {
         nextseqnum={senderNextSeqNum}
         timerValue={timerValue}
         congestionWindow={congestionWindow}
-        slowStartThreshold={slowStartThreshold}
         requiredWindowSize={requiredWindowSize}
       />
 

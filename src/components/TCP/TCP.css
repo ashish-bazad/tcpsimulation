@@ -1,5 +1,5 @@
 .phase-display {
-  color: #ffc107;
+  color: #d9a000; /* A darker, more readable yellow/gold */
   text-transform: capitalize;
   font-weight: bold;
 }

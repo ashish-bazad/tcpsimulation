@@ -167,19 +167,10 @@ function SlowStartSimulator() {
 
   return (
     <div className="app-container">
-      <header>
-        <h1>Slow Start Simulator</h1>
-      </header>
       
       <StatusDisplay 
-        windowBase={windowBase}
-        base={senderBase} 
-        nextseqnum={senderNextSeqNum} 
         timerValue={timerValue}
         // timerForPacket={timerForPacket}
-        congestionWindow={congestionWindow}
-        requiredWindowSize={requiredWindowSize}
-        // slowStartThreshold={slowStartThreshold}
       />
 
       <SimulatorControls 

@@ -9,8 +9,10 @@
 }
 
 body {
+  /*
   background-color: #242424;
   color: #fff;
+  */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -31,23 +33,23 @@ body {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f0f0f0; /* Changed from #1a1a1a */
   cursor: pointer;
   transition: all 0.25s ease;
   border-radius: 8px;
   border: 1px solid transparent;
-  color: #fff;
+  color: #333; /* Changed from #fff */
 }
 
 .app-container header button:hover {
   border-color: #646cff;
-  background-color: #2a2a2a;
+  background-color: #e0e0e0; /* Changed from #2a2a2a */
 }
 
 .app-container header button:disabled {
-  background-color: #333;
+  background-color: #cccccc; /* Changed from #333 */
   cursor: not-allowed;
-  border-color: #555;
+  border-color: #aaaaaa; /* Changed from #555 */
   opacity: 0.6;
 }
 
@@ -75,13 +77,13 @@ body {
 .timer-display {
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background-color: #1a1a1a;
+  background-color: #f8f9fa; /* Off-white card */
   border-radius: 8px;
-  border: 1px solid #555;
+  border: 1px solid #ced4da; /* Clear border */
   font-family: 'Courier New', Courier, monospace;
   font-size: 1.2rem;
-  color: #ffc107;
-  box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+  color: #ffc107; 
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07); /* More visible shadow */
   word-break: break-all; /* Allow timer text to break */
 }
 
@@ -114,7 +116,8 @@ body {
 }
 
 .controls-container button:disabled {
-  background-color: #333;
+  background-color: #cccccc; /* Light grey disabled state */
+  color: #888;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.8;
 }

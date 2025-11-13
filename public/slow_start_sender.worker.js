@@ -35,6 +35,7 @@ const startTimer = () => {
     //   N = 1;
       postMessage({ type: 'STATE_UPDATE', newRequiredWindowSize: requiredWindowSize });
       postMessage({ type: 'LOG', message: `(Sender): TIMEOUT for packets starting from base ${base}. ssthresh is now ${ssthresh} and cwnd is ${N}.` });
+      postMessage({ type: 'LOG', message: `(Sender): ➡️ Required window size set to ${requiredWindowSize} due to timeout.` });
       postMessage({ type: 'TIMEOUT_EVENT' });
     }
   }, 1000);
@@ -64,6 +65,7 @@ onmessage = (e) => {
       phase = payload.phase || 'slow_start';
       stopTimer();
       postMessage({ type: 'STATE_UPDATE', base, windowBase, nextseqnum, newWindowSize: N, newCongestionWindow: N, newSlowStartThreshold: ssthresh, newRequiredWindowSize: requiredWindowSize, newAcksReceivedForCurrentWindow: acksReceivedForCurrentWindow });
+      postMessage({ type: 'LOG', message: `(Sender): ➡️ Initial required window size: ${requiredWindowSize}.` });
       break;
 
     case 'SEND_WINDOW':
@@ -136,6 +138,7 @@ onmessage = (e) => {
     case 'RECEIVE_ACK':
       if (payload.ack >= base) {
         requiredWindowSize = Math.min(requiredWindowSize + 1, 100);
+        postMessage({ type: 'LOG', message: `(Sender): ➡️ ACK received. Required window size increases to ${requiredWindowSize}.` });
         acksReceivedForCurrentWindow++;
 
         base = payload.ack + 1;
